@@ -70,14 +70,15 @@ async function convertCsvLinkAja(req, res) {
                 res.send({ status: 'failed', desc: error })
             }
 
+
             var workbook = new Excel.Workbook()
             console.log("type : ", req.file.mimetype)
-            var dataLinkaja = await convertxlsx(req.file.path, workbook)
+            var dataLinkaja = await convertxlsx(req.file.path, workbook);
             var countInsertLinkAja = await insertData(dataLinkaja);
-            var countInsertMP = await matchingData(dataLinkaja, dataKonekthing);
-            //3.sending response
-          
-            res.send({ status: "success", data_masuk: countInsertLinkAja, data_sama: countInsertMP.matchdata, updated_data_linkaja: countInsertMP.updatedData })
+            var countInsertMPLinkaja = await matchingData(dataLinkaja, dataKonekthing)
+
+            console.log("success")
+            res.send({ status: "success", data_masuk: countInsertLinkAja, data_sama: countInsertMPLinkaja.matchdata, updated_data_linkaja: countInsertMPLinkaja.updatedData })
 
         });
     } else {
@@ -127,36 +128,37 @@ async function matchingData(dataLinkAja, dataKonekthing) {
     let matchcount = 0;
     let updatecount = 0;
 
-    //var disini hanya untuk nunggu si async.each
-    var insertMatch = await async.each(dataLinkAja, function (data, resume) {
+    for await (data of dataLinkAja) {
         var payment_date = convertdatetime(data[2])
         var transaction_date = convertdatetime(data[3])
-        dataKonekthing.map(dataMp => {
-            const isMatch = (dataMp.transactionDate === moment(`${payment_date}`).format('YYYY-MM-DD HH:mm:ss')) && (parseInt(dataMp.amount) === data[7])
+        for await (dataMp of dataKonekthing) {
+            const isMatch = (dataMp.transactionDate === moment(`${payment_date}`).format('YYYY-MM-DD HH:mm:ss'))
             if (isMatch) {
-                insertdataMPLinkAja(data, dataMp, transaction_date)
-                    .then(result => {
+                await insertdataMPLinkAja(data, dataMp, transaction_date)
+                    .then(async result => {
+                        console.log("import sama")
                         if (result.insertId !== 0) {
                             matchcount++;
                         }
-                        updateDataLinkaja(dataMp, payment_date)
+                        await updateDataLinkaja(dataMp, payment_date)
                             .then(result => {
+                                console.log("update sama")
                                 if (result.affectedRows > 0) {
                                     updatecount++;
                                 }
-                                resume();
                             })
-                      
+
                     })
             }
-        })
-    });
-    var objcount = {
-        matchdata: matchcount,
-        updatedData: updatecount
+        }
     }
-   
-    return objcount;
+
+var objcount = {
+    matchdata: matchcount,
+    updatedData: updatecount
+}
+
+return objcount
 }
 
 module.exports = router;

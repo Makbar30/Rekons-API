@@ -120,29 +120,28 @@ async function insertData(dataOVO) {
 
 async function matchingData(dataOVO, dataKonekthing) {
     let matchcount = 0;
-    let updatecount = 0
+    let updatecount = 0;
 
-    //var disini hanya untuk nunggu si async.each
-    var insertMatch = await async.each(dataOVO, function (dataFaspay, resume) {
-        dataKonekthing.map(dataMp => {
+    for await (dataFaspay of dataOVO) {
+        for await (dataMp of dataKonekthing) {
             if (parseInt(dataMp.bill_no) === parseInt(dataFaspay[6])) {
-                insertdataMPOVO(dataMp)
-                    .then(result => {
-                        console.log(result)
+                await insertdataMPOVO(dataMp)
+                    .then(async result => {
+                        // console.log(result)
                         if (result.insertId !== 0) {
                             matchcount++;
                         }
-                        updateDataFaspay(dataFaspay[6])
+                        await updateDataFaspay(dataFaspay[6])
                             .then(result => {
                                 if (result.affectedRows > 0) {
                                     updatecount++;
                                 }
-                                resume();
                             })
                     })
             }
-        })
-    });
+        }
+    }
+
     var objcount = {
         matchdata: matchcount,
         updatedData: updatecount
