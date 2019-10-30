@@ -6,7 +6,11 @@ const bodyparser = require('body-parser');
 
 var cors = require('cors');
 
-const rekonsController = require('./controllers/rekonsController');
+const ovoController = require('./controllers/OVOController');
+const paramsController = require('./controllers/paramsController');
+const rekapController = require('./controllers/rekapController')
+const loginController = require('./controllers/loginController')
+const linkAjaController = require('./controllers/LinkAjaController');
 
 function main () {
     var app = express();
@@ -26,7 +30,11 @@ function main () {
         console.log('Express server started at port : 3005');
     });
     
-    app.use('/rekons', rekonsController);
+    app.use('/rekons/login', loginController);
+    app.use('/rekons/ovo', ovoController);
+    app.use('/rekons/linkaja', linkAjaController);
+    app.use('/rekons/rekap', rekapController);
+    app.use('/rekons/params', paramsController);
 
 }
 
