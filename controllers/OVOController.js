@@ -6,7 +6,8 @@ const fetch = require('node-fetch')
 const { URLSearchParams } = require('url');
 const async = require('async')
 var _ = require('lodash');
-const{ insertImportFaspay, insertdataMPOVO, updateDataFaspay } = require('../models/ovo')
+var fs = require('fs');
+const { insertImportFaspay, insertdataMPOVO, updateDataFaspay } = require('../models/ovo')
 
 /// ini untuk upload ///
 const multer = require('multer');
@@ -18,10 +19,10 @@ var storage = multer.diskStorage({
         cb(null, `${Date.now()}-${file.originalname}`);
     }
 });
-var upload = multer({ storage: storage })
+var upload = multer({ storage: storage }).single('file')
 
 //upload and convert csv & xlxs
-router.post('/upload', upload.single('file'), (req, res) => {
+router.post('/upload', upload, (req, res) => {
     convertCsvOVO(req, res)
 });
 
@@ -59,30 +60,38 @@ async function convertCsvOVO(req, res) {
     //get parameter for shared fee
     // var parameters = await getParameter('ovo');
 
-    if (req.file.mimetype.includes("spreadsheet")) {
-        mysqlCon.query(`
-                       INSERT INTO attachment ( 
-                           attachment_name , import_at , ext_name , channel
-                         ) values ( 
-                           '${req.file.filename}' , NOW() , '${req.file.mimetype}', 'ovo'
-                         )`, async function (error, rows, fields) {
+    if (req.file.filename.includes("Faspay Debit Report")) {
+        var workbook = new Excel.Workbook()
+        console.log("type : ", req.file.mimetype)
+        var dataFaspay = await convertxlsx(req.file.path, workbook)
+        var countInsertFaspay = await insertData(dataFaspay);
+        var countInsertMP = await matchingData(dataFaspay, dataKonekthing);
+        if (countInsertFaspay === 0 && countInsertMP.matchdata === 0 || countInsertMP.updatedData === 0) {
+            fs.unlink(`./tmp/csv/${req.file.filename}`, function (err) {
+                if (err) throw err;
 
-            if (error) {
-                res.send({ status: 'failed', desc: error })
-            }
+                res.status(400).send({ status: 'failed', desc: "File sama isinya dan tidak ada yang match" })
+            });
+        } else {
+            mysqlCon.query(`
+                INSERT INTO attachment ( 
+                    attachment_name , import_at , ext_name , channel
+                  ) values ( 
+                    '${req.file.filename}' , NOW() , '${req.file.mimetype}', 'ovo'
+                  )`, async function (error, rows, fields) {
 
-            var workbook = new Excel.Workbook()
-            console.log("type : ", req.file.mimetype)
-            
-            var dataFaspay = await convertxlsx(req.file.path, workbook)
-            var countInsertFaspay = await insertData(dataFaspay);
-            var countInsertMP = await matchingData(dataFaspay, dataKonekthing);
-            res.send({ status: "success", data_masuk: countInsertFaspay, data_sama: countInsertMP.matchdata, updated_data_faspay: countInsertMP.updatedData })
-
-        });
-
+                if (error) {
+                    res.status(400).send({ status: 'failed', desc: error })
+                }
+                res.send({ status: "success", data_masuk: countInsertFaspay, data_sama: countInsertMP.matchdata, updated_data_faspay: countInsertMP.updatedData })
+            })
+        }
     } else {
-        res.status(500).send({ status: 'failed', desc: "Tipe file bukan xlsx" })
+        fs.unlink(`./tmp/csv/${req.file.filename}`, function (err) {
+            if (err) throw err;
+
+            res.status(400).send({ status: 'failed', desc: "File bukan dari dashboard OVO (Faspay)" })
+        });
     }
 }
 
@@ -127,7 +136,6 @@ async function matchingData(dataOVO, dataKonekthing) {
             if (parseInt(dataMp.bill_no) === parseInt(dataFaspay[6])) {
                 await insertdataMPOVO(dataMp)
                     .then(async result => {
-                        // console.log(result)
                         if (result.insertId !== 0) {
                             matchcount++;
                         }

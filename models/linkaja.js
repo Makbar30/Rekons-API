@@ -59,7 +59,7 @@ exports.insertdataMPLinkAja = ( values, data , transaction_date ) => {
 exports.updateDataLinkaja = (data , payment_date) => {
     return new Promise(resolve => {
         var sql = `UPDATE transaction_import 
-        SET isSame = 1, reference_id = '${data.refNum}', updated_at = NOW() 
+        SET isSame = 1, reference_id = '${data.refNum}', updated_at = NOW(), bill_no = ${data.trxId} 
         WHERE (payment_date = CAST('${payment_date}' AS datetime) AND channel = 'LINKAJA') AND isSame = 0`
             mysqlCon.query(sql, function (error, rows, fields) {
                 if (error) {

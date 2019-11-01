@@ -7,6 +7,7 @@ const { URLSearchParams } = require('url');
 const async = require('async')
 var _ = require('lodash');
 const moment = require('moment');
+var fs = require('fs');
 const { insertImportLinkaja, insertdataMPLinkAja, updateDataLinkaja } = require('../models/linkaja')
 
 /// ini untuk upload ///
@@ -59,30 +60,40 @@ async function convertCsvLinkAja(req, res) {
     //get parameter for shared fee
     // var parameters = await getParameter('linkaja');
 
-    if (req.file.mimetype.includes("spreadsheet")) {
-        mysqlCon.query(`
-        INSERT INTO attachment ( 
-            attachment_name , import_at , ext_name , channel
-          ) values ( 
-            '${req.file.filename}' , NOW() , '${req.file.mimetype}', 'linkaja'
-          )`, async function (error, rows, fields) {
-            if (error) {
-                res.send({ status: 'failed', desc: error })
-            }
+    if (req.file.filename.includes("ORG_muslimpocket_wco__")) {
+        var workbook = new Excel.Workbook()
+        console.log("type : ", req.file.mimetype)
+        var dataLinkaja = await convertxlsx(req.file.path, workbook);
+        var countInsertLinkAja = await insertData(dataLinkaja);
+        var countInsertMPLinkaja = await matchingData(dataLinkaja, dataKonekthing)
+
+        if (countInsertLinkAja === 0 && countInsertMPLinkaja.matchdata === 0 && countInsertMPLinkaja.updatedData === 0) {
+            fs.unlink(`./tmp/csv/${req.file.filename}`, function (err) {
+                if (err) throw err;
+                // if no error, file has been deleted successfully
+                res.status(400).send({ status: 'failed', desc: "File sama isinya dan tidak ada yang match" })
+            });
+        } else {
+            mysqlCon.query(`
+                            INSERT INTO attachment ( 
+                            attachment_name , import_at , ext_name , channel
+                            ) values ( 
+                            '${req.file.filename}' , NOW() , '${req.file.mimetype}', 'linkaja'
+          )`, function (error, rows, fields) {
+                if (error) {
+                    res.status(400).send({ status: 'failed', desc: error })
+                }
+                res.send({ status: "success", data_masuk: countInsertLinkAja, data_sama: countInsertMPLinkaja.matchdata, updated_data_linkaja: countInsertMPLinkaja.updatedData })
+            });
+        }
 
 
-            var workbook = new Excel.Workbook()
-            console.log("type : ", req.file.mimetype)
-            var dataLinkaja = await convertxlsx(req.file.path, workbook);
-            var countInsertLinkAja = await insertData(dataLinkaja);
-            var countInsertMPLinkaja = await matchingData(dataLinkaja, dataKonekthing)
-
-            console.log("success")
-            res.send({ status: "success", data_masuk: countInsertLinkAja, data_sama: countInsertMPLinkaja.matchdata, updated_data_linkaja: countInsertMPLinkaja.updatedData })
-
-        });
     } else {
-        res.send("file bukan csv atau xlsx")
+        fs.unlink(`./tmp/csv/${req.file.filename}`, function (err) {
+            if (err) throw err;
+            // if no error, file has been deleted successfully
+            res.status(400).send({ status: 'failed', desc: "File bukan dari dashboard Linkaja" })
+        });
     }
 }
 
@@ -153,12 +164,12 @@ async function matchingData(dataLinkAja, dataKonekthing) {
         }
     }
 
-var objcount = {
-    matchdata: matchcount,
-    updatedData: updatecount
-}
+    var objcount = {
+        matchdata: matchcount,
+        updatedData: updatecount
+    }
 
-return objcount
+    return objcount
 }
 
 module.exports = router;
