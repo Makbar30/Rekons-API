@@ -2,9 +2,10 @@ const express = require('express');
 var router = express.Router();
 const mysqlCon = require('../models/mysqlCon');
 const jwt = require("jsonwebtoken")
+const _ = require("lodash")
 
 //login
-router.post('/login', (req, res) => {
+router.post('/', (req, res) => {
     var userID = req.body.userID;
     var Password = req.body.password;
 
