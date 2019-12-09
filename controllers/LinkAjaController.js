@@ -26,6 +26,11 @@ router.post('/upload', upload.single('file'), (req, res) => {
     convertCsvLinkAja(req, res)
 });
 
+router.get('/datarealtime', async (req, res) => {
+    var dataKonekthing = await getDataKonekthing('linkaja');
+    res.send({status:"success", result : dataKonekthing})
+});
+
 /*************************************** Function List **********************************************/
 
 const getDataKonekthing = type => {

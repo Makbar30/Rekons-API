@@ -11,6 +11,7 @@ const paramsController = require('./controllers/paramsController');
 const rekapController = require('./controllers/rekapController')
 const loginController = require('./controllers/loginController')
 const linkAjaController = require('./controllers/LinkAjaController');
+const CRUDController = require('./controllers/rekonsController');
 
 function main () {
     var app = express();
@@ -30,6 +31,7 @@ function main () {
         console.log('Express server started at port : 3005');
     });
     
+    app.use('/rekons', CRUDController);
     app.use('/rekons/login', loginController);
     app.use('/rekons/ovo', ovoController);
     app.use('/rekons/linkaja', linkAjaController);

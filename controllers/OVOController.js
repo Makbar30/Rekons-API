@@ -26,6 +26,12 @@ router.post('/upload', upload, (req, res) => {
     convertCsvOVO(req, res)
 });
 
+//upload and convert csv & xlxs
+router.get('/datarealtime', async (req, res) => {
+    var dataKonekthing = await getDataKonekthing('ovo');
+    res.send({status:"success", result : dataKonekthing})
+});
+
 /*************************************** Function List **********************************************/
 
 const getDataKonekthing = type => {

@@ -18,6 +18,7 @@ router.get('/exportcsv/:bank/:date', (req, res) => {
     exportCSV(req, res)
 });
 
+/*************************************** Function List **********************************************/
 
 async function getAllDataByChannel(req, res) {
 
