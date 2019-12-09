@@ -7,6 +7,8 @@ const bodyparser = require('body-parser');
 var cors = require('cors');
 
 const ovoController = require('./controllers/OVOController');
+const gopayController = require('./controllers/GoPayController');
+const danaController = require('./controllers/DanaController');
 const paramsController = require('./controllers/paramsController');
 const rekapController = require('./controllers/rekapController')
 const loginController = require('./controllers/loginController')
@@ -34,7 +36,9 @@ function main () {
     app.use('/rekons', CRUDController);
     app.use('/rekons/login', loginController);
     app.use('/rekons/ovo', ovoController);
+    app.use('/rekons/gopay', gopayController);
     app.use('/rekons/linkaja', linkAjaController);
+    app.use('/rekons/dana', danaController);
     app.use('/rekons/rekap', rekapController);
     app.use('/rekons/params', paramsController);
 

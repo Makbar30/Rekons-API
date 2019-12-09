@@ -56,7 +56,7 @@ exports.getDataBank = (bank, date) => {
 
 exports.getRekapTrMP = () => {
     return new Promise(resolve => {
-        const sql = `SELECT *
+        const sql = `SELECT *           
         FROM transaction_mp tr
         ORDER BY tr.tgl_pembayaran ASC `;
         console.log(sql)
