@@ -17,9 +17,9 @@ router.get('/get/paramsdetail/:id_parameter', (req, res) => {
     getParamsDetail(req, res)
 });
 
-router.get('/get/paramsinput', (req, res) => {
-    getParamsInput(req, res)
-});
+// router.get('/get/:channel', (req, res) => {
+//     getParamsInput(req, res)
+// });
 
 //update
 router.put('/update', (req, res) => {

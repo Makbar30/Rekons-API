@@ -8,6 +8,7 @@ const async = require('async')
 var _ = require('lodash');
 var fs = require('fs');
 const { insertImportFaspay, insertdataMPOVO, updateDataFaspay } = require('../models/ovo')
+const { getParamsInput } = require('../models/params')
 
 /// ini untuk upload ///
 const multer = require('multer');
@@ -29,7 +30,8 @@ router.post('/upload', upload, (req, res) => {
 //upload and convert csv & xlxs
 router.get('/datarealtime', async (req, res) => {
     var dataKonekthing = await getDataKonekthing('ovo');
-    res.send({status:"success", result : dataKonekthing})
+
+    res.send({ status: "success", result: dataKonekthing })
 });
 
 /*************************************** Function List **********************************************/
@@ -62,16 +64,16 @@ async function convertCsvOVO(req, res) {
 
     //1.fetching data dari dataKonekthing
     var dataKonekthing = await getDataKonekthing('ovo');
-
-    //get parameter for shared fee
-    // var parameters = await getParameter('ovo');
+    var potonganKMDN = await getParamsInput("kmdn");
+    var potonganUser = await getParamsInput("user");
+    var potonganChannel = await getParamsInput("ovo")
 
     if (req.file.filename.includes("Faspay Debit Report")) {
         var workbook = new Excel.Workbook()
         console.log("type : ", req.file.mimetype)
         var dataFaspay = await convertxlsx(req.file.path, workbook)
         var countInsertFaspay = await insertData(dataFaspay);
-        var countInsertMP = await matchingData(dataFaspay, dataKonekthing);
+        var countInsertMP = await matchingData(dataFaspay, dataKonekthing, potonganKMDN, potonganUser, potonganChannel);
         if (countInsertFaspay === 0 && countInsertMP.matchdata === 0 || countInsertMP.updatedData === 0) {
             fs.unlink(`./tmp/csv/${req.file.filename}`, function (err) {
                 if (err) throw err;
@@ -117,30 +119,27 @@ async function convertxlsx(path, workbook) {
 
 async function insertData(dataOVO) {
     let count = 0;
-
-    //var disini hanya untuk nunggu si async.each
-    var insertImport = await async.each(dataOVO, function (data, resume) {
-        insertImportFaspay(data)
+    for await (dataFaspay of dataOVO) {
+        await insertImportFaspay(dataFaspay)
             .then(result => {
                 console.log(result)
                 if (result.insertId !== 0) {
                     count++;
                 }
-                resume();
             })
-    });
+    }
 
     return count;
 }
 
-async function matchingData(dataOVO, dataKonekthing) {
+async function matchingData(dataOVO, dataKonekthing, params_KMDN, params_user, params_channel) {
     let matchcount = 0;
     let updatecount = 0;
 
     for await (dataFaspay of dataOVO) {
         for await (dataMp of dataKonekthing) {
             if (parseInt(dataMp.bill_no) === parseInt(dataFaspay[6])) {
-                await insertdataMPOVO(dataMp)
+                await insertdataMPOVO(dataMp, params_KMDN, params_user, params_channel)
                     .then(async result => {
                         if (result.insertId !== 0) {
                             matchcount++;

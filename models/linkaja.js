@@ -23,13 +23,14 @@ exports.insertImportLinkaja = (values, payment_date, transaction_date) => {
     });
 }
 
-exports.insertdataMPLinkAja = ( values, data , transaction_date ) => {
+exports.insertdataMPLinkAja = (values, data, transaction_date,  ptg_kmdn, ptg_user, ptg_channel) => {
     return new Promise(resolve => {
+        var total_nominal_akhir = data.amount - (data.amount * (ptg_kmdn + ptg_user + ptg_channel));
         var sql = ` 
         INSERT INTO transaction_mp ( bill_no, sender , receiver , channel ,   
             transaction_id , tgl_transaksi , tgl_pembayaran , total_amount , total_pembayaran,
            nama_penerima ,  bank_penerima , no_rekening_penerima, nama_rekening_penerima, status, isTransfer,
-           imported_at, updated_at)
+           imported_at, updated_at, transfered_at, isExport, potongan_kmdn, potongan_channel, potongan_cashback, total_akhir, reference_id)
         SELECT * 
         FROM (
             SELECT  ${parseInt(data.trxId)} as bill_no, '${data.username_pengirim_linkaja}' as sender , 
@@ -39,7 +40,9 @@ exports.insertdataMPLinkAja = ( values, data , transaction_date ) => {
             ${parseInt(data.amount)} as total_amount , ${parseInt(data.amount)} as total_pembayaran,
          "${data.masjid_nama}" as nama_penerima , '${data.bank_nama}' as bank_penerima , 
          '${data.masjid_no_rekening}' as no_rekening_penerima , "${data.masjid_pemilik_rekening}" as nama_rekening_penerima, 
-         '${data.status}' as status, "F" as isTransfer, NOW() as imported_at, NOW() as updated_at) AS tmp
+         '${data.status}' as status, "F" as isTransfer, NOW() as imported_at, '' as updated_at, '' as transfered_at,
+         "F" as isExport,${ptg_kmdn} as potongan_kmdn,${ptg_channel} as potongan_channel, ${ptg_user} as potongan_cashback,
+         ${total_nominal_akhir} as total_akhir, '${data.refNum}' as reference_id) AS tmp
         WHERE NOT EXISTS (
         SELECT transaction_id 
         FROM transaction_mp 
@@ -56,17 +59,17 @@ exports.insertdataMPLinkAja = ( values, data , transaction_date ) => {
     });
 }
 
-exports.updateDataLinkaja = (data , payment_date) => {
+exports.updateDataLinkaja = (data, payment_date) => {
     return new Promise(resolve => {
         var sql = `UPDATE transaction_import 
         SET isSame = 1, reference_id = '${data.refNum}', updated_at = NOW(), bill_no = ${data.trxId} 
         WHERE (payment_date = CAST('${payment_date}' AS datetime) AND channel = 'LINKAJA') AND isSame = 0`
-            mysqlCon.query(sql, function (error, rows, fields) {
-                if (error) {
-                    console.log(error);
-                }
-                resolve(rows)
-            })
+        mysqlCon.query(sql, function (error, rows, fields) {
+            if (error) {
+                console.log(error);
+            }
+            resolve(rows)
+        })
     });
 }
 

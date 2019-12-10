@@ -9,6 +9,7 @@ var _ = require('lodash');
 const moment = require('moment');
 var fs = require('fs');
 const { insertImportLinkaja, insertdataMPLinkAja, updateDataLinkaja } = require('../models/linkaja')
+const { getParamsInput } = require('../models/params')
 
 /// ini untuk upload ///
 const multer = require('multer');
@@ -61,16 +62,16 @@ async function convertCsvLinkAja(req, res) {
 
     //1.fetching data dari dataKonekthing
     var dataKonekthing = await getDataKonekthing('linkaja');
-
-    //get parameter for shared fee
-    // var parameters = await getParameter('linkaja');
+    var potonganKMDN = await getParamsInput("kmdn");
+    var potonganUser = await getParamsInput("user");
+    var potonganChannel = await getParamsInput("linkaja")
 
     if (req.file.filename.includes("ORG_muslimpocket_wco__")) {
         var workbook = new Excel.Workbook()
         console.log("type : ", req.file.mimetype)
         var dataLinkaja = await convertxlsx(req.file.path, workbook);
         var countInsertLinkAja = await insertData(dataLinkaja);
-        var countInsertMPLinkaja = await matchingData(dataLinkaja, dataKonekthing)
+        var countInsertMPLinkaja = await matchingData(dataLinkaja, dataKonekthing, potonganKMDN, potonganUser, potonganChannel)
 
         if (countInsertLinkAja === 0 && countInsertMPLinkaja.matchdata === 0 && countInsertMPLinkaja.updatedData === 0) {
             fs.unlink(`./tmp/csv/${req.file.filename}`, function (err) {
@@ -125,22 +126,21 @@ async function convertxlsx(path, workbook) {
 
 async function insertData(dataLinkAja) {
     let count = 0;
-    //var disini hanya untuk nunggu si async.each
-    var insertImport = await async.each(dataLinkAja, function (data, resume) {
-        var transaction_date = convertdatetime(data[3])
-        var payment_date = convertdatetime(data[2])
-        insertImportLinkaja(data, payment_date, transaction_date)
+    for await (data of dataLinkAja) {
+        var transaction_date = await convertdatetime(data[3])
+        var payment_date = await convertdatetime(data[2])
+        await insertImportLinkaja(data, payment_date, transaction_date)
             .then(result => {
                 if (result.insertId !== 0) {
                     count++;
                 }
-                resume();
+               
             })
-    });
+    }
     return count;
 }
 
-async function matchingData(dataLinkAja, dataKonekthing) {
+async function matchingData(dataLinkAja, dataKonekthing, params_KMDN, params_user, params_channel) {
     let matchcount = 0;
     let updatecount = 0;
 
@@ -150,7 +150,7 @@ async function matchingData(dataLinkAja, dataKonekthing) {
         for await (dataMp of dataKonekthing) {
             const isMatch = (dataMp.transactionDate === moment(`${payment_date}`).format('YYYY-MM-DD HH:mm:ss'))
             if (isMatch) {
-                await insertdataMPLinkAja(data, dataMp, transaction_date)
+                await insertdataMPLinkAja(data, dataMp, transaction_date, params_KMDN, params_user, params_channel)
                     .then(async result => {
                         console.log("import sama")
                         if (result.insertId !== 0) {

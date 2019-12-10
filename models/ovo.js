@@ -22,17 +22,21 @@ exports.insertImportFaspay = values => {
     });
 }
 
-exports.insertdataMPOVO = data => {
+exports.insertdataMPOVO = (data, ptg_kmdn, ptg_user, ptg_channel) => {
     return new Promise(resolve => {
+        var total_nominal_akhir = data.payment_total - (data.payment_total * (ptg_kmdn + ptg_user + ptg_channel));
         var sql = `INSERT INTO transaction_mp ( bill_no, sender , receiver , channel ,   
             transaction_id , tgl_transaksi , tgl_pembayaran , total_amount , total_pembayaran,
-           nama_penerima ,  bank_penerima , no_rekening_penerima, nama_rekening_penerima, status, isTransfer, imported_at, updated_at)
+           nama_penerima ,  bank_penerima , no_rekening_penerima, nama_rekening_penerima, status, isTransfer, imported_at, updated_at,
+           transfered_at, isExport, potongan_kmdn, potongan_channel, potongan_cashback, total_akhir, reference_id)
         SELECT * 
         FROM (
             SELECT  ${parseInt(data.bill_reff)} as bill_no, '${data.username_pengirim_ovo}' as sender , '${data.username_penerima_ovo}' as receiver , 'ovo' as channel , '${data.trx_id}' as transaction_id , CAST('${data.bill_date}' AS datetime) as tgl_transaksi ,
             CAST('${data.payment_date}' AS datetime) as tgl_pembayaran  , ${parseInt(data.bill_total)} as total_amount , ${parseInt(data.payment_total)} as total_pembayaran,
          "${data.masjid_nama}" as nama_penerima , '${data.bank_nama}' as bank_penerima , '${data.masjid_no_rekening}' as no_rekening_penerima , "${data.masjid_pemilik_rekening}" as nama_rekening_penerima, 
-         '${data.payment_status_desc}' as status, "F" as isTransfer, NOW() as imported_at, NOW() as updated_at) AS tmp
+         '${data.payment_status_desc}' as status, "F" as isTransfer, NOW() as imported_at, '' as updated_at, '' as transfered_at,
+         "F" as isExport,${ptg_kmdn} as potongan_kmdn,${ptg_channel} as potongan_channel, ${ptg_user} as potongan_cashback,
+         ${total_nominal_akhir} as total_akhir, '${data.payment_reff}' as reference_id) AS tmp
         WHERE NOT EXISTS (
         SELECT transaction_id 
         FROM transaction_mp 

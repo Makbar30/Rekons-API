@@ -72,15 +72,14 @@ exports.getParamsDetail = (req, res) => {
     });
 }
 
-exports.getParamsInput = (req, res) => {
-
-    const sql = `SELECT p.id_parameter, p.channel FROM parameter p`
-
-    mysqlCon.query(sql, function (error, rows, fields) {
-        if (error) {
-            console.log(error)
-        } else {
-            res.send(rows)
-        }
+exports.getParamsInput = channel => {
+    return new Promise(resolve => {
+        const sql = `SELECT nilai_parameter FROM parameter WHERE channel = '${channel}' `
+        mysqlCon.query(sql, function (error, rows, fields) {
+            if (error) {
+                console.log(error);
+            }
+            resolve(rows[0].nilai_parameter);
+        });
     });
 }
