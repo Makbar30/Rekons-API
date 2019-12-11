@@ -50,3 +50,22 @@ exports.updateTransferStat = id => {
             });
     });
 }
+
+exports.updateExportStat = data => {
+    return new Promise(resolve => {
+        const sql = `UPDATE transaction_mp
+        SET isTransfer = "T" , transfered_at = NOW()
+        WHERE nama_penerima = '${data.nama_penerima}' AND no_rekening_penerima = '${data.no_rekening_penerima}'` ;
+        console.log(sql)
+        mysqlCon.query(sql,
+            function (error, rows, fields) {
+                if (error) {
+                    console.log(error)
+                    throw error
+                } else {
+                    resolve(rows);
+                }
+            });
+    });
+}
+

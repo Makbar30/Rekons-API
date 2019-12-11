@@ -66,7 +66,7 @@ async function convertCsvLinkAja(req, res) {
     var potonganUser = await getParamsInput("user");
     var potonganChannel = await getParamsInput("linkaja")
 
-    if (req.file.filename.includes("ORG_muslimpocket_wco__")) {
+    if (req.file.filename.includes("ORG_muslimpocket_wco_")) {
         var workbook = new Excel.Workbook()
         console.log("type : ", req.file.mimetype)
         var dataLinkaja = await convertxlsx(req.file.path, workbook);

@@ -18,6 +18,23 @@ exports.getRekapBank = () => {
     });
 }
 
+exports.getRekapMasjid = () => {
+    return new Promise(resolve => {
+        const sql = `SELECT tr.no_rekening_penerima, tr.nama_rekening_penerima, tr.nama_penerima, tr.bank_penerima, count(tr.bank_penerima) as jumlah_transaksi, SUM(tr.total_akhir) as nominal_transaksi
+        FROM transaction_mp tr
+        GROUP BY tr.nama_penerima`;
+        console.log(sql)
+        mysqlCon.query(sql,
+            function (error, rows, fields) {
+                if (error) {
+                    console.log(error)
+                } else {
+                    resolve(rows);
+                }
+            });
+    });
+}
+
 exports.getRekapTrImport = () => {
     return new Promise(resolve => {
         const sql = `SELECT *
@@ -153,6 +170,40 @@ exports.getNominalDataMP = channel => {
                     console.log(error)
                 } else {
                     resolve(rows[0]);
+                }
+            });
+    });
+}
+
+exports.getDatabyrek = (nama_penerima, no_rekening_penerima) => {
+    return new Promise(resolve => {
+        const sql = `SELECT * FROM transaction_mp 
+        WHERE nama_penerima = "${nama_penerima}" AND no_rekening_penerima = '${no_rekening_penerima}'` ;
+        console.log(sql)
+        mysqlCon.query(sql,
+            function (error, rows, fields) {
+                if (error) {
+                    console.log(error)
+                    throw error
+                } else {
+                    resolve(rows);
+                }
+            });
+    });
+}
+
+exports.getDatabyMasjid = nama_penerima => {
+    return new Promise(resolve => {
+        const sql = `SELECT * FROM transaction_mp 
+        WHERE nama_penerima = "${nama_penerima}"` ;
+        console.log(sql)
+        mysqlCon.query(sql,
+            function (error, rows, fields) {
+                if (error) {
+                    console.log(error)
+                    throw error
+                } else {
+                    resolve(rows);
                 }
             });
     });
