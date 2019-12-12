@@ -2,10 +2,10 @@ const mysqlCon = require('./mysqlCon')
 
 exports.getRekapBank = () => {
     return new Promise(resolve => {
-        const sql = `SELECT DATE_FORMAT(tr.tgl_pembayaran,"%Y-%m-%d") as pembayaran_tgl, tr.bank_penerima, count(tr.bank_penerima) as jumlah_transaksi, SUM(tr.total_amount) as nominal_transaksi
-        FROM transaction_mp tr
-        GROUP BY DATE_FORMAT(tr.tgl_pembayaran,"%Y-%m-%d")  , tr.bank_penerima
-        ORDER BY tr.tgl_pembayaran`;
+        const sql = `SELECT tr.bank_penerima, count(tr.bank_penerima) as jumlah_transaksi, SUM(tr.total_akhir) as nominal_transaksi
+                FROM transaction_mp tr
+				GROUP BY tr.bank_penerima
+                ORDER BY nominal_transaksi DESC`;
         console.log(sql)
         mysqlCon.query(sql,
             function (error, rows, fields) {
@@ -22,7 +22,8 @@ exports.getRekapMasjid = () => {
     return new Promise(resolve => {
         const sql = `SELECT tr.no_rekening_penerima, tr.nama_rekening_penerima, tr.nama_penerima, tr.bank_penerima, count(tr.bank_penerima) as jumlah_transaksi, SUM(tr.total_akhir) as nominal_transaksi
         FROM transaction_mp tr
-        GROUP BY tr.nama_penerima`;
+        GROUP BY tr.nama_penerima
+        ORDER BY nominal_transaksi DESC`;
         console.log(sql)
         mysqlCon.query(sql,
             function (error, rows, fields) {
@@ -178,7 +179,7 @@ exports.getNominalDataMP = channel => {
 exports.getDatabyrek = (nama_penerima, no_rekening_penerima) => {
     return new Promise(resolve => {
         const sql = `SELECT * FROM transaction_mp 
-        WHERE nama_penerima = "${nama_penerima}" AND no_rekening_penerima = '${no_rekening_penerima}'` ;
+        WHERE nama_penerima = "${nama_penerima}" AND no_rekening_penerima = '${no_rekening_penerima}'`;
         console.log(sql)
         mysqlCon.query(sql,
             function (error, rows, fields) {
@@ -195,7 +196,24 @@ exports.getDatabyrek = (nama_penerima, no_rekening_penerima) => {
 exports.getDatabyMasjid = nama_penerima => {
     return new Promise(resolve => {
         const sql = `SELECT * FROM transaction_mp 
-        WHERE nama_penerima = "${nama_penerima}"` ;
+        WHERE nama_penerima = "${nama_penerima}"`;
+        console.log(sql)
+        mysqlCon.query(sql,
+            function (error, rows, fields) {
+                if (error) {
+                    console.log(error)
+                    throw error
+                } else {
+                    resolve(rows);
+                }
+            });
+    });
+}
+
+exports.getDatabyBank = bank => {
+    return new Promise(resolve => {
+        const sql = `SELECT * FROM transaction_mp 
+        WHERE bank_penerima = "${bank}"`;
         console.log(sql)
         mysqlCon.query(sql,
             function (error, rows, fields) {

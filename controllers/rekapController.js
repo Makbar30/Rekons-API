@@ -2,7 +2,7 @@ const express = require('express');
 var router = express.Router();
 
 const { getDataBank, getDataImportByChannel, getDataMPByChannel, getNominalDataImport , getNominalDataMP , getRekapBank , getRekapTrImport
-       , getRekapTrMP , getRekapMasjid, getDatabyrek, getDatabyMasjid } = require('../models/rekap')
+       , getRekapTrMP , getRekapMasjid, getDatabyrek, getDatabyMasjid, getDatabyBank } = require('../models/rekap')
 
 //show data summary sesuai semua data yg pertama dimunculkan
 router.get('/alldata', (req, res) => {
@@ -28,6 +28,10 @@ router.get('/getDataExport/:nama/:norek', (req, res) => {
 
 router.get('/getDataExport/:nama', (req, res) => {
     getDataByMasjid(req, res)
+});
+
+router.get('/getDataExportByBank/:bank', (req, res) => {
+    getListDataByBank(req, res)
 });
 
 /*************************************** Function List **********************************************/
@@ -58,9 +62,10 @@ async function getRekap(req, res) {
 async function getDataForExport(req, res) {
 
     const dataExport = await getRekapMasjid();
+    const dataRekapBank = await getRekapBank();
 
     if (dataExport) {
-        res.send({ data_export: dataExport })
+        res.send({ by_akunRek: dataExport, by_akunBank: dataRekapBank })
     }
 }
 
@@ -81,6 +86,17 @@ async function getDataByMasjid(req, res) {
         res.send({ data_export: dataExport })
     }
 }
+
+
+async function getListDataByBank(req, res) {
+
+    const dataExport = await getDatabyBank(req.params.bank);
+
+    if (dataExport) {
+        res.send({ data_export: dataExport })
+    }
+}
+
 
 async function exportCSV(req, res) {
     var dataByBank = await getDataBank(req.params.bank, req.params.date);
