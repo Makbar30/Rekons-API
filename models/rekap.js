@@ -20,7 +20,7 @@ exports.getRekapBank = () => {
 
 exports.getRekapMasjid = () => {
     return new Promise(resolve => {
-        const sql = `SELECT tr.no_rekening_penerima, tr.nama_rekening_penerima, tr.nama_penerima, tr.bank_penerima, count(tr.bank_penerima) as jumlah_transaksi, SUM(tr.total_akhir) as nominal_transaksi
+        const sql = `SELECT tr.receiver, tr.no_rekening_penerima, tr.nama_rekening_penerima, tr.nama_penerima, tr.bank_penerima, count(tr.bank_penerima) as jumlah_transaksi, SUM(tr.total_akhir) as nominal_transaksi
         FROM transaction_mp tr
         GROUP BY tr.nama_penerima
         ORDER BY nominal_transaksi DESC`;
@@ -213,13 +213,33 @@ exports.getDatabyMasjid = nama_penerima => {
 exports.getDatabyBank = bank => {
     return new Promise(resolve => {
         const sql = `SELECT * FROM transaction_mp 
-        WHERE bank_penerima = "${bank}"`;
+        WHERE bank_penerima = "${bank}"
+        ORDER BY nama_penerima ASC`;
         console.log(sql)
         mysqlCon.query(sql,
             function (error, rows, fields) {
                 if (error) {
                     console.log(error)
                     throw error
+                } else {
+                    resolve(rows);
+                }
+            });
+    });
+}
+
+exports.getRekapMasjidByBank = bank => {
+    return new Promise(resolve => {
+        const sql = `SELECT tr.receiver, tr.no_rekening_penerima, tr.nama_rekening_penerima, tr.nama_penerima, tr.bank_penerima, count(tr.bank_penerima) as jumlah_transaksi, SUM(tr.total_akhir) as nominal_transaksi
+        FROM transaction_mp tr
+        WHERE tr.bank_penerima = "${bank}"
+        GROUP BY tr.nama_penerima
+        ORDER BY nominal_transaksi DESC`;
+        console.log(sql)
+        mysqlCon.query(sql,
+            function (error, rows, fields) {
+                if (error) {
+                    console.log(error)
                 } else {
                     resolve(rows);
                 }

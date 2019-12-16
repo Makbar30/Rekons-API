@@ -2,7 +2,7 @@ const express = require('express');
 var router = express.Router();
 
 const { getDataBank, getDataImportByChannel, getDataMPByChannel, getNominalDataImport , getNominalDataMP , getRekapBank , getRekapTrImport
-       , getRekapTrMP , getRekapMasjid, getDatabyrek, getDatabyMasjid, getDatabyBank } = require('../models/rekap')
+       , getRekapTrMP , getRekapMasjid, getDatabyrek, getDatabyMasjid, getDatabyBank, getRekapMasjidByBank } = require('../models/rekap')
 
 //show data summary sesuai semua data yg pertama dimunculkan
 router.get('/alldata', (req, res) => {
@@ -53,9 +53,10 @@ async function getRekap(req, res) {
     const dataRekapBank = await getRekapBank();
     const dataRekapImport = await getRekapTrImport();
     const dataRekapMP = await getRekapTrMP();
+    const dataRekapMasjid = await getRekapMasjid();
 
     if (dataRekapBank && dataRekapImport && dataRekapMP) {
-        res.send({ rekap_MP: dataRekapMP, rekap_Import: dataRekapImport, rekap_bank: dataRekapBank })
+        res.send({ rekap_MP: dataRekapMP, rekap_Import: dataRekapImport, rekap_bank: dataRekapBank, rekap_rekening: dataRekapMasjid })
     }
 }
 
@@ -91,9 +92,10 @@ async function getDataByMasjid(req, res) {
 async function getListDataByBank(req, res) {
 
     const dataExport = await getDatabyBank(req.params.bank);
+    const dataMasjid = await getRekapMasjidByBank(req.params.bank);
 
     if (dataExport) {
-        res.send({ data_export: dataExport })
+        res.send({ data_export: dataExport, data_masjid: dataMasjid })
     }
 }
 
