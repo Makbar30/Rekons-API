@@ -8,6 +8,7 @@ const async = require('async')
 var _ = require('lodash');
 var fs = require('fs');
 const { insertImportGopay, insertdataMPGOPAY, updateDataGopay } = require('../models/gopay')
+const { getParamsInput } = require('../models/params')
 
 /// ini untuk upload ///
 const multer = require('multer');
@@ -62,16 +63,16 @@ async function convertCsvGOPAY(req, res) {
 
     //1.fetching data dari dataKonekthing
     var dataKonekthing = await getDataKonekthing('gopay');
+    var potonganKMDN = await getParamsInput("kmdn");
+    var potonganUser = await getParamsInput("user");
+    var potonganChannel = await getParamsInput("gopay")
 
-    //get parameter for shared fee
-    // var parameters = await getParameter('ovo');
-
-    if (req.file.filename.includes("Gopay Debit Report")) {
+    if (req.file.filename.includes("Muslim Pocket-")) {
         var workbook = new Excel.Workbook()
         console.log("type : ", req.file.mimetype)
         var dataGopay = await convertxlsx(req.file.path, workbook)
         var countInsertGopay = await insertData(dataGopay);
-        var countInsertMP = await matchingData(dataGopay, dataKonekthing);
+        var countInsertMP = await matchingData(dataGopay, dataKonekthing, potonganKMDN, potonganUser, potonganChannel);
         if (countInsertGopay === 0 && countInsertMP.matchdata === 0 || countInsertMP.updatedData === 0) {
             fs.unlink(`./tmp/csv/${req.file.filename}`, function (err) {
                 if (err) throw err;
@@ -96,7 +97,7 @@ async function convertCsvGOPAY(req, res) {
         fs.unlink(`./tmp/csv/${req.file.filename}`, function (err) {
             if (err) throw err;
 
-            res.status(400).send({ status: 'failed', desc: "File bukan dari dashboard GOPAY" })
+            res.status(400).send({ status: 'failed', desc: "File bukan dari dashboard MidTrans" })
         });
     }
 }
@@ -106,7 +107,7 @@ async function convertxlsx(path, workbook) {
     var sheet = await workbooks._worksheets[1];
     var dataGOPAY = [];
     await sheet.eachRow((row, rowIndex) => {
-        const isGOPAY = row.values.includes("GOPAY", 4);
+        const isGOPAY = row.values.includes("GO-PAY", 2);
         if (isGOPAY) {
             dataGOPAY.push(row.values);
         }
@@ -117,35 +118,32 @@ async function convertxlsx(path, workbook) {
 
 async function insertData(dataGOPAY) {
     let count = 0;
-
-    //var disini hanya untuk nunggu si async.each
-    var insertImport = await async.each(dataGOPAY, function (data, resume) {
-        insertImportGopay(data)
+    for await (data of dataGOPAY) {
+       await insertImportGopay(data)
             .then(result => {
                 console.log(result)
                 if (result.insertId !== 0) {
                     count++;
                 }
-                resume();
             })
-    });
+    }
 
     return count;
 }
 
-async function matchingData(dataGOPAY, dataKonekthing) {
+async function matchingData(dataGOPAY, dataKonekthing, params_KMDN, params_user, params_channel) {
     let matchcount = 0;
     let updatecount = 0;
 
     for await (dataGopay of dataGOPAY) {
         for await (dataMp of dataKonekthing) {
-            if (parseInt(dataMp.bill_no) === parseInt(dataGopay[6])) {
-                await insertdataMPGOPAY(dataMp)
+            if (parseInt(dataMp.order_id) === parseInt(dataGopay[1].replace("'",""))) {
+                await insertdataMPGOPAY(dataMp, params_KMDN, params_user, params_channel)
                     .then(async result => {
                         if (result.insertId !== 0) {
                             matchcount++;
                         }
-                        await updateDataGopay(dataGopay[6])
+                        await updateDataGopay(parseInt(dataGopay[1].replace("'","")))
                             .then(result => {
                                 if (result.affectedRows > 0) {
                                     updatecount++;
