@@ -30,7 +30,7 @@ router.post('/upload', upload, (req, res) => {
 //upload and convert csv & xlxs
 router.get('/datarealtime', async (req, res) => {
     var dataKonekthing = await getDataKonekthing('gopay');
-    res.send({status:"success", result : dataKonekthing})
+    res.send({ status: "success", result: dataKonekthing })
 });
 
 /*************************************** Function List **********************************************/
@@ -119,7 +119,7 @@ async function convertxlsx(path, workbook) {
 async function insertData(dataGOPAY) {
     let count = 0;
     for await (data of dataGOPAY) {
-       await insertImportGopay(data)
+        await insertImportGopay(data)
             .then(result => {
                 console.log(result)
                 if (result.insertId !== 0) {
@@ -137,13 +137,13 @@ async function matchingData(dataGOPAY, dataKonekthing, params_KMDN, params_user,
 
     for await (dataGopay of dataGOPAY) {
         for await (dataMp of dataKonekthing) {
-            if (parseInt(dataMp.order_id) === parseInt(dataGopay[1].replace("'",""))) {
+            if (parseInt(dataMp.order_id) === parseInt(dataGopay[1].replace("'", ""))) {
                 await insertdataMPGOPAY(dataMp, params_KMDN, params_user, params_channel)
                     .then(async result => {
                         if (result.insertId !== 0) {
                             matchcount++;
                         }
-                        await updateDataGopay(parseInt(dataGopay[1].replace("'","")))
+                        await updateDataGopay(parseInt(dataGopay[1].replace("'", "")))
                             .then(result => {
                                 if (result.affectedRows > 0) {
                                     updatecount++;

@@ -1,17 +1,17 @@
 const mysqlCon = require('./mysqlCon');
-
+const moment = require('moment')
 exports.insertImportGopay = values => {
     return new Promise(resolve => {
         var sql = `INSERT INTO transaction_import ( channel , transaction_id , bill_no , reference_id , transaction_date , 
             payment_date , amount , payment_amount ,
             status, isSame , imported_at, updated_at)
-        SELECT * FROM (SELECT  '${values[2]}' as channel , '${values[5].replace("'","")}' as transaction_id ,
+        SELECT * FROM (SELECT  'GOPAY' as channel , '${values[5].replace("'","")}' as transaction_id ,
         ${parseInt(values[1].replace("'",""))} as bill_no , '${values[5].replace("'","")}' as reference_id , 
-        CAST('${values[7]}' AS datetime) as transaction_date,  
-        CAST('${values[8]}' AS datetime) as payment_date , ${parseInt(values[4])} as amount ,
+        CAST('${moment(`${values[7]}`).format('YYYY-MM-DD HH:mm:ss')}' AS datetime) as transaction_date,  
+        CAST('${moment(`${values[8]}`).format('YYYY-MM-DD HH:mm:ss')}' AS datetime) as payment_date , ${parseInt(values[4])} as amount ,
         ${parseInt(values[4])} as payment_amount, '${values[6]}' as status , 0 as isSame, NOW() as imported_at, NOW() as updated_at) AS tmp
         WHERE NOT EXISTS (
-        SELECT transaction_id FROM transaction_import WHERE transaction_id = '${values[5].replace("'","")}' AND channel = 'GO-PAY'
+        SELECT transaction_id FROM transaction_import WHERE transaction_id = '${values[5].replace("'","")}' AND channel = 'GOPAY'
         ) LIMIT 1`;
         mysqlCon.query(sql, function (error, rows, fields) {
             if (error) {
@@ -56,7 +56,7 @@ exports.updateDataGopay = values => {
     return new Promise(resolve => {
         var sql = `UPDATE transaction_import 
         SET isSame = 1 , updated_at = NOW()
-        WHERE (bill_no = ${values} AND channel = 'GO-PAY') AND isSame = 0`;
+        WHERE (bill_no = ${values} AND channel = 'GOPAY') AND isSame = 0`;
         mysqlCon.query(sql, function (error, rows, fields) {
             if (error) {
                 console.log(error);

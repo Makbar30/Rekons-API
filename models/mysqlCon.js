@@ -6,8 +6,8 @@ var con  = mysql.createPool({
   host: "localhost",
   port: "3306",
   user: "root",
-  password: "muslimpocket2019!@#",
-  database: "rekonsiliasi_dev",
+  password: "",
+  database: "rekons_dev",
   multipleStatements: true
 });
 
