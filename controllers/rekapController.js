@@ -9,7 +9,7 @@ router.get('/alldata', (req, res) => {
     getRekap(req, res)
 });
 
-router.get('/exportdata', (req, res) => {
+router.get('/exportdata/', (req, res) => {
     getDataForExport(req, res)
 });
 

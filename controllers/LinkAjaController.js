@@ -29,7 +29,7 @@ router.post('/upload', upload.single('file'), (req, res) => {
 
 router.get('/datarealtime', async (req, res) => {
     var dataKonekthing = await getDataKonekthing('linkaja');
-    res.send({status:"success", result : dataKonekthing})
+    res.send({ status: "success", result: dataKonekthing })
 });
 
 /*************************************** Function List **********************************************/
@@ -134,7 +134,7 @@ async function insertData(dataLinkAja) {
                 if (result.insertId !== 0) {
                     count++;
                 }
-               
+
             })
     }
     return count;
@@ -148,8 +148,9 @@ async function matchingData(dataLinkAja, dataKonekthing, params_KMDN, params_use
         var payment_date = convertdatetime(data[2])
         var transaction_date = convertdatetime(data[3])
         for await (dataMp of dataKonekthing) {
-            const isMatch = (dataMp.transactionDate === moment(`${payment_date}`).format('YYYY-MM-DD HH:mm:ss'))
-            if (isMatch) {
+            const isMatch = dataMp.transactionDate === moment(`${payment_date}`).format('YYYY-MM-DD HH:mm:ss')
+            const isMatchAlt = dataMp.transactionDate === moment(`${payment_date}`).add(1, 'seconds').format('YYYY-MM-DD HH:mm:ss')
+            if (isMatch || isMatchAlt) {
                 await insertdataMPLinkAja(data, dataMp, transaction_date, params_KMDN, params_user, params_channel)
                     .then(async result => {
                         console.log("import sama")
