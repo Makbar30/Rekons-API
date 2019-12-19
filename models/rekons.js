@@ -17,9 +17,13 @@ exports.updateExistingRekons = data => {
 
 exports.getDetail = id => {
     return new Promise(resolve => {
-        const sql = `SELECT *
-        FROM transaction_mp tr
-        WHERE tr.id = ${id} `;
+        const sql = `SELECT a.*, (a.total_pembayaran - (a.nominal_potongan_kmdn + a.nominal_potongan_cashback + a.nominal_potongan_channel)) as total_akhir
+        FROM(
+                SELECT tr.*, (ti.potongan_kmdn * tr.total_pembayaran) as nominal_potongan_kmdn, (ti.potongan_channel * tr.						total_pembayaran) as 	nominal_potongan_channel, (ti.potongan_cashback * tr.total_pembayaran) as 							nominal_potongan_cashback, ti.potongan_channel, ti.potongan_kmdn, ti.potongan_cashback
+                FROM transaction_mp tr
+                LEFT JOIN transaction_import ti ON ti.reference_id = tr.reference_id
+                WHERE tr.id = ${id}
+            )a `;
         console.log(sql)
         mysqlCon.query(sql,
             function (error, rows, fields) {

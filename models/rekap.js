@@ -2,10 +2,64 @@ const mysqlCon = require('./mysqlCon')
 
 exports.getRekapBank = () => {
     return new Promise(resolve => {
-        const sql = `SELECT tr.bank_penerima, count(tr.bank_penerima) as jumlah_transaksi, SUM(tr.total_akhir) as nominal_transaksi
-                FROM transaction_mp tr
-				GROUP BY tr.bank_penerima
-                ORDER BY nominal_transaksi DESC`;
+        const sql = `SELECT a.*, (a.nominal_transaksi_awal - (a.nominal_potongan_kmdn + a.nominal_potongan_cashback + a.nominal_potongan_channel)) as total_akhir
+        FROM(
+            SELECT tr.bank_penerima as nama_bank, count(tr.bank_penerima) as jumlah_transaksi, 
+                        SUM(tr.total_pembayaran) as nominal_transaksi_awal, SUM(ti.potongan_kmdn*tr.total_pembayaran) as nominal_potongan_kmdn,
+                        SUM(ti.potongan_channel * tr.total_pembayaran) as nominal_potongan_channel, SUM(ti.potongan_cashback * tr.				total_pembayaran) as nominal_potongan_cashback
+            FROM transaction_mp tr
+            LEFT JOIN transaction_import ti ON ti.reference_id = tr.reference_id
+            GROUP BY tr.bank_penerima
+            ) a
+        ORDER BY total_akhir DESC`;
+        console.log(sql)
+        mysqlCon.query(sql,
+            function (error, rows, fields) {
+                if (error) {
+                    console.log(error)
+                } else {
+                    resolve(rows);
+                }
+            });
+    });
+}
+
+exports.getRekapBankByDate = (start_date, end_date) => {
+    return new Promise(resolve => {
+        const sql = `SELECT a.*, (a.nominal_transaksi_awal - (a.nominal_potongan_kmdn + a.nominal_potongan_cashback + a.nominal_potongan_channel)) as total_akhir
+        FROM(
+            SELECT tr.bank_penerima as nama_bank, count(tr.bank_penerima) as jumlah_transaksi, 
+                        SUM(tr.total_pembayaran) as nominal_transaksi_awal, SUM(ti.potongan_kmdn*tr.total_pembayaran) as nominal_potongan_kmdn,
+                        SUM(ti.potongan_channel * tr.total_pembayaran) as nominal_potongan_channel, SUM(ti.potongan_cashback * tr.				total_pembayaran) as nominal_potongan_cashback
+            FROM transaction_mp tr
+            LEFT JOIN transaction_import ti ON ti.reference_id = tr.reference_id
+            WHERE (tr.isTransfer = "F" AND (tr.tgl_transaksi BETWEEN "${start_date}" AND "${end_date}"))
+            GROUP BY tr.bank_penerima
+            ) a
+        ORDER BY total_akhir DESC`;
+        console.log(sql)
+        mysqlCon.query(sql,
+            function (error, rows, fields) {
+                if (error) {
+                    console.log(error)
+                } else {
+                    resolve(rows);
+                }
+            });
+    });
+}
+
+exports.getRekapMasjidByDate = (start_date, end_date) => {
+    return new Promise(resolve => {
+        const sql = `SELECT a.* , (a.nominal_transaksi_awal - (a.nominal_potongan_kmdn + a.nominal_potongan_cashback + a.nominal_potongan_channel)) as total_akhir
+        FROM(
+            SELECT tr.receiver, tr.no_rekening_penerima, tr.nama_rekening_penerima, tr.nama_penerima, tr.bank_penerima, count(tr.					bank_penerima) as jumlah_transaksi, SUM(tr.total_pembayaran) as nominal_transaksi_awal, SUM(ti.potongan_kmdn*tr.total_pembayaran) as nominal_potongan_kmdn, SUM(ti.potongan_channel * tr.total_pembayaran) as 					nominal_potongan_channel, SUM(ti.potongan_cashback * tr.total_pembayaran) as nominal_potongan_cashback
+            FROM transaction_mp tr
+            LEFT JOIN transaction_import ti ON ti.reference_id = tr.reference_id
+            WHERE (tr.isTransfer = "F" AND (tr.tgl_transaksi BETWEEN "${start_date}" AND "${end_date}"))
+          GROUP BY tr.nama_penerima
+        ) a
+        ORDER BY total_akhir DESC`;
         console.log(sql)
         mysqlCon.query(sql,
             function (error, rows, fields) {
@@ -20,10 +74,14 @@ exports.getRekapBank = () => {
 
 exports.getRekapMasjid = () => {
     return new Promise(resolve => {
-        const sql = `SELECT tr.receiver, tr.no_rekening_penerima, tr.nama_rekening_penerima, tr.nama_penerima, tr.bank_penerima, count(tr.bank_penerima) as jumlah_transaksi, SUM(tr.total_akhir) as nominal_transaksi
-        FROM transaction_mp tr
-        GROUP BY tr.nama_penerima
-        ORDER BY nominal_transaksi DESC`;
+        const sql = `SELECT a.* , (a.nominal_transaksi_awal - (a.nominal_potongan_kmdn + a.nominal_potongan_cashback + a.nominal_potongan_channel)) as total_akhir
+        FROM(
+            SELECT tr.receiver, tr.no_rekening_penerima, tr.nama_rekening_penerima, tr.nama_penerima, tr.bank_penerima, count(tr.					bank_penerima) as jumlah_transaksi, SUM(tr.total_pembayaran) as nominal_transaksi_awal, SUM(ti.potongan_kmdn*tr.total_pembayaran) as nominal_potongan_kmdn, SUM(ti.potongan_channel * tr.total_pembayaran) as 					nominal_potongan_channel, SUM(ti.potongan_cashback * tr.total_pembayaran) as nominal_potongan_cashback
+            FROM transaction_mp tr
+            LEFT JOIN transaction_import ti ON ti.reference_id = tr.reference_id
+          GROUP BY tr.nama_penerima
+        ) a
+        ORDER BY total_akhir DESC`;
         console.log(sql)
         mysqlCon.query(sql,
             function (error, rows, fields) {
@@ -38,9 +96,11 @@ exports.getRekapMasjid = () => {
 
 exports.getRekapTrImport = () => {
     return new Promise(resolve => {
-        const sql = `SELECT *
-        FROM transaction_import tr
-        ORDER BY tr.payment_date ASC`;
+        const sql = `SELECT a.*, (a.payment_amount - (a.nominal_potongan_channel + a.nominal_potongan_kmdn + a.nominal_potongan_cashback)) as nominal_akhir  FROM (
+            SELECT  tr.*, (tr.payment_amount * tr.potongan_channel) as nominal_potongan_channel , (tr.payment_amount * tr.potongan_kmdn) as nominal_potongan_kmdn, (tr.payment_amount * tr.potongan_cashback) as nominal_potongan_cashback  
+            from transaction_import tr
+            ) a
+            ORDER BY a.payment_date ASC`;
         console.log(sql)
         mysqlCon.query(sql,
             function (error, rows, fields) {
@@ -74,9 +134,12 @@ exports.getDataBank = (bank, date) => {
 
 exports.getRekapTrMP = () => {
     return new Promise(resolve => {
-        const sql = `SELECT *           
-        FROM transaction_mp tr
-        ORDER BY tr.tgl_pembayaran ASC `;
+        const sql = `SELECT a.*, (a.total_pembayaran - (a.nominal_potongan_kmdn + a.nominal_potongan_cashback + a.nominal_potongan_channel)) as total_akhir
+        FROM(
+                SELECT tr.*, (ti.potongan_kmdn * tr.total_pembayaran) as nominal_potongan_kmdn, (ti.potongan_channel * tr.						total_pembayaran) as 	nominal_potongan_channel, (ti.potongan_cashback * tr.total_pembayaran) as 							nominal_potongan_cashback
+                FROM transaction_mp tr
+                LEFT JOIN transaction_import ti ON ti.reference_id = tr.reference_id
+            )a`;
         console.log(sql)
         mysqlCon.query(sql,
             function (error, rows, fields) {
@@ -92,19 +155,13 @@ exports.getRekapTrMP = () => {
 
 exports.getDataMPByChannel = channel => {
     return new Promise(resolve => {
-        if (channel === "ovo") {
-            var sql = `SELECT  * from transaction_mp tr
-            WHERE tr.channel = '${channel}'
-            ORDER BY tr.bill_no ASC `;
-        } else if (channel === "linkaja") {
-            var sql = `SELECT  * from transaction_mp tr
-            WHERE tr.channel = '${channel}'
-            ORDER BY tr.tgl_pembayaran ASC `;
-        } else {
-            var sql = `SELECT  * from transaction_mp tr
-            WHERE tr.channel = '${channel}' `;
-        }
-
+        const sql = `SELECT a.*, (a.total_pembayaran - (a.nominal_potongan_kmdn + a.nominal_potongan_cashback + a.nominal_potongan_channel)) as total_akhir
+        FROM(
+                SELECT tr.*, (ti.potongan_kmdn * tr.total_pembayaran) as nominal_potongan_kmdn, (ti.potongan_channel * tr.						total_pembayaran) as 	nominal_potongan_channel, (ti.potongan_cashback * tr.total_pembayaran) as 							nominal_potongan_cashback
+                FROM transaction_mp tr
+                LEFT JOIN transaction_import ti ON ti.reference_id = tr.reference_id
+                WHERE tr.channel = "${channel}" 
+            )a`;
         console.log(sql)
         mysqlCon.query(sql,
             function (error, rows, fields) {
@@ -119,19 +176,13 @@ exports.getDataMPByChannel = channel => {
 
 exports.getDataImportByChannel = channel => {
     return new Promise(resolve => {
-        if (channel === "ovo") {
-            var sql = `SELECT  * from transaction_import tr
-            WHERE tr.channel = '${channel}'
-            ORDER BY tr.bill_no ASC `;
-        } else if (channel === "linkaja") {
-            var sql = `SELECT  * from transaction_import tr
-            WHERE tr.channel = '${channel}'
-            ORDER BY tr.payment_date ASC `;
-        } else {
-            var sql = `SELECT  * from transaction_import tr
-            WHERE tr.channel = '${channel}' `;
-        }
 
+        var sql = `SELECT a.*, (a.payment_amount - (a.nominal_potongan_channel + a.nominal_potongan_kmdn + a.nominal_potongan_cashback)) as nominal_akhir  FROM (
+        SELECT  tr.*, (tr.payment_amount * tr.potongan_channel) as nominal_potongan_channel , (tr.payment_amount * tr.potongan_kmdn) as nominal_potongan_kmdn, (tr.payment_amount * tr.potongan_cashback) as nominal_potongan_cashback  
+        from transaction_import tr
+        WHERE tr.channel = '${channel}'
+        ) a
+        ORDER BY a.payment_date ASC `;
         console.log(sql)
         mysqlCon.query(sql,
             function (error, rows, fields) {
@@ -176,10 +227,15 @@ exports.getNominalDataMP = channel => {
     });
 }
 
-exports.getDatabyrek = (nama_penerima, no_rekening_penerima) => {
+exports.getDatabyrek = (nama_penerima, no_rekening_penerima, start_date, end_date) => {
     return new Promise(resolve => {
-        const sql = `SELECT * FROM transaction_mp 
-        WHERE nama_penerima = "${nama_penerima}" AND no_rekening_penerima = '${no_rekening_penerima}'`;
+        const sql = `SELECT a.*, (a.total_pembayaran - (a.nominal_potongan_kmdn + a.nominal_potongan_cashback + a.nominal_potongan_channel)) as total_akhir
+        FROM(
+                SELECT tr.*, (ti.potongan_kmdn * tr.total_pembayaran) as nominal_potongan_kmdn, (ti.potongan_channel * tr.						total_pembayaran) as 	nominal_potongan_channel, (ti.potongan_cashback * tr.total_pembayaran) as 							nominal_potongan_cashback
+                FROM transaction_mp tr
+                LEFT JOIN transaction_import ti ON ti.reference_id = tr.reference_id
+                WHERE ((tr.nama_penerima = "${nama_penerima}" AND tr.no_rekening_penerima = '${no_rekening_penerima}') AND (tr.isTransfer = "F" AND (tr.tgl_transaksi BETWEEN "${start_date}" AND 	"${end_date}")))
+            )a`;
         console.log(sql)
         mysqlCon.query(sql,
             function (error, rows, fields) {
@@ -210,11 +266,15 @@ exports.getDatabyMasjid = nama_penerima => {
     });
 }
 
-exports.getDatabyBank = bank => {
+exports.getDatabyMasjidAndDate = (nama_penerima, start_date, end_date) => {
     return new Promise(resolve => {
-        const sql = `SELECT * FROM transaction_mp 
-        WHERE bank_penerima = "${bank}"
-        ORDER BY nama_penerima ASC`;
+        const sql = `SELECT a.*, (a.total_pembayaran - (a.nominal_potongan_kmdn + a.nominal_potongan_cashback + a.nominal_potongan_channel)) as total_akhir
+        FROM(
+                SELECT tr.*, (ti.potongan_kmdn * tr.total_pembayaran) as nominal_potongan_kmdn, (ti.potongan_channel * tr.						total_pembayaran) as 	nominal_potongan_channel, (ti.potongan_cashback * tr.total_pembayaran) as 							nominal_potongan_cashback
+                FROM transaction_mp tr
+                LEFT JOIN transaction_import ti ON ti.reference_id = tr.reference_id
+                WHERE (tr.nama_penerima = "${nama_penerima}" AND (tr.isTransfer = "F" AND (tr.tgl_transaksi BETWEEN "${start_date}" AND 	"${end_date}")))
+            )a`;
         console.log(sql)
         mysqlCon.query(sql,
             function (error, rows, fields) {
@@ -228,13 +288,40 @@ exports.getDatabyBank = bank => {
     });
 }
 
-exports.getRekapMasjidByBank = bank => {
+exports.getDatabyBank = (bank, start_date, end_date) => {
     return new Promise(resolve => {
-        const sql = `SELECT tr.receiver, tr.no_rekening_penerima, tr.nama_rekening_penerima, tr.nama_penerima, tr.bank_penerima, count(tr.bank_penerima) as jumlah_transaksi, SUM(tr.total_akhir) as nominal_transaksi
-        FROM transaction_mp tr
-        WHERE tr.bank_penerima = "${bank}"
-        GROUP BY tr.nama_penerima
-        ORDER BY nominal_transaksi DESC`;
+        const sql = `SELECT a.*, (a.total_pembayaran - (a.nominal_potongan_kmdn + a.nominal_potongan_cashback + a.nominal_potongan_channel)) as total_akhir
+        FROM(
+                SELECT tr.*, (ti.potongan_kmdn * tr.total_pembayaran) as nominal_potongan_kmdn, (ti.potongan_channel * tr.total_pembayaran) as nominal_potongan_channel, (ti.potongan_cashback * tr.total_pembayaran) as 							nominal_potongan_cashback
+                FROM transaction_mp tr
+                LEFT JOIN transaction_import ti ON ti.reference_id = tr.reference_id
+                WHERE (tr.bank_penerima = "${bank}" AND (tr.isTransfer = "F" AND (tr.tgl_transaksi BETWEEN "${start_date}" AND 	"${end_date}")))
+            )a
+        ORDER BY a.nama_penerima ASC`;
+        console.log(sql)
+        mysqlCon.query(sql,
+            function (error, rows, fields) {
+                if (error) {
+                    console.log(error)
+                    throw error
+                } else {
+                    resolve(rows);
+                }
+            });
+    });
+}
+
+exports.getRekapMasjidByBank = (bank, start_date, end_date) => {
+    return new Promise(resolve => {
+        const sql = `SELECT a.* , (a.nominal_transaksi_awal - (a.nominal_potongan_kmdn + a.nominal_potongan_cashback + a.nominal_potongan_channel)) as total_akhir
+        FROM(
+            SELECT tr.receiver, tr.no_rekening_penerima, tr.nama_rekening_penerima, tr.nama_penerima, tr.bank_penerima, count(tr.bank_penerima) as jumlah_transaksi, SUM(tr.total_pembayaran) as nominal_transaksi_awal, SUM(ti.potongan_kmdn * tr.total_pembayaran) as nominal_potongan_kmdn, SUM(ti.potongan_channel * tr.total_pembayaran) as 			nominal_potongan_channel, SUM(ti.potongan_cashback * tr.total_pembayaran) as nominal_potongan_cashback
+            FROM transaction_mp tr
+            LEFT JOIN transaction_import ti ON ti.reference_id = tr.reference_id
+            WHERE (tr.bank_penerima = "${bank}" AND (tr.isTransfer = "F" AND (tr.tgl_transaksi BETWEEN "${start_date}" AND 	"${end_date}")))
+          GROUP BY tr.nama_penerima
+        ) a
+        ORDER BY a.nama_penerima ASC`;
         console.log(sql)
         mysqlCon.query(sql,
             function (error, rows, fields) {

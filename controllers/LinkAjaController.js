@@ -70,8 +70,8 @@ async function convertCsvLinkAja(req, res) {
         var workbook = new Excel.Workbook()
         console.log("type : ", req.file.mimetype)
         var dataLinkaja = await convertxlsx(req.file.path, workbook);
-        var countInsertLinkAja = await insertData(dataLinkaja);
-        var countInsertMPLinkaja = await matchingData(dataLinkaja, dataKonekthing, potonganKMDN, potonganUser, potonganChannel)
+        var countInsertLinkAja = await insertData(dataLinkaja, potonganKMDN, potonganUser, potonganChannel);
+        var countInsertMPLinkaja = await matchingData(dataLinkaja, dataKonekthing)
 
         if (countInsertLinkAja === 0 && countInsertMPLinkaja.matchdata === 0 && countInsertMPLinkaja.updatedData === 0) {
             fs.unlink(`./tmp/csv/${req.file.filename}`, function (err) {
@@ -124,12 +124,12 @@ async function convertxlsx(path, workbook) {
     return dataLinkAja
 }
 
-async function insertData(dataLinkAja) {
+async function insertData(dataLinkAja, params_KMDN, params_user, params_channel) {
     let count = 0;
     for await (data of dataLinkAja) {
         var transaction_date = await convertdatetime(data[3])
         var payment_date = await convertdatetime(data[2])
-        await insertImportLinkaja(data, payment_date, transaction_date)
+        await insertImportLinkaja(data, payment_date, transaction_date, params_KMDN, params_user, params_channel)
             .then(result => {
                 if (result.insertId !== 0) {
                     count++;
@@ -140,7 +140,7 @@ async function insertData(dataLinkAja) {
     return count;
 }
 
-async function matchingData(dataLinkAja, dataKonekthing, params_KMDN, params_user, params_channel) {
+async function matchingData(dataLinkAja, dataKonekthing) {
     let matchcount = 0;
     let updatecount = 0;
 
@@ -151,7 +151,7 @@ async function matchingData(dataLinkAja, dataKonekthing, params_KMDN, params_use
             const isMatch = dataMp.transactionDate === moment(`${payment_date}`).format('YYYY-MM-DD HH:mm:ss')
             const isMatchAlt = dataMp.transactionDate === moment(`${payment_date}`).add(1, 'seconds').format('YYYY-MM-DD HH:mm:ss')
             if (isMatch || isMatchAlt) {
-                await insertdataMPLinkAja(data, dataMp, transaction_date, params_KMDN, params_user, params_channel)
+                await insertdataMPLinkAja(data, dataMp, transaction_date)
                     .then(async result => {
                         console.log("import sama")
                         if (result.insertId !== 0) {

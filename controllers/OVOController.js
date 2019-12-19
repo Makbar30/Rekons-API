@@ -72,8 +72,8 @@ async function convertCsvOVO(req, res) {
         var workbook = new Excel.Workbook()
         console.log("type : ", req.file.mimetype)
         var dataFaspay = await convertxlsx(req.file.path, workbook)
-        var countInsertFaspay = await insertData(dataFaspay);
-        var countInsertMP = await matchingData(dataFaspay, dataKonekthing, potonganKMDN, potonganUser, potonganChannel);
+        var countInsertFaspay = await insertData(dataFaspay, potonganKMDN, potonganUser, potonganChannel);
+        var countInsertMP = await matchingData(dataFaspay, dataKonekthing);
         if (countInsertFaspay === 0 && countInsertMP.matchdata === 0 || countInsertMP.updatedData === 0) {
             fs.unlink(`./tmp/csv/${req.file.filename}`, function (err) {
                 if (err) throw err;
@@ -117,10 +117,10 @@ async function convertxlsx(path, workbook) {
     return dataOVO
 }
 
-async function insertData(dataOVO) {
+async function insertData(dataOVO, params_KMDN, params_user, params_channel) {
     let count = 0;
     for await (dataFaspay of dataOVO) {
-        await insertImportFaspay(dataFaspay)
+        await insertImportFaspay(dataFaspay, params_KMDN, params_user, params_channel)
             .then(result => {
                 console.log(result)
                 if (result.insertId !== 0) {
@@ -132,14 +132,14 @@ async function insertData(dataOVO) {
     return count;
 }
 
-async function matchingData(dataOVO, dataKonekthing, params_KMDN, params_user, params_channel) {
+async function matchingData(dataOVO, dataKonekthing) {
     let matchcount = 0;
     let updatecount = 0;
 
     for await (dataFaspay of dataOVO) {
         for await (dataMp of dataKonekthing) {
             if (parseInt(dataMp.bill_no) === parseInt(dataFaspay[6])) {
-                await insertdataMPOVO(dataMp, params_KMDN, params_user, params_channel)
+                await insertdataMPOVO(dataMp)
                     .then(async result => {
                         if (result.insertId !== 0) {
                             matchcount++;
