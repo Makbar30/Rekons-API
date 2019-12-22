@@ -18,9 +18,7 @@ exports.addParam = (req, res) => {
 exports.updateParam = (req, res) => {
     var sql = `UPDATE parameter 
                             SET
-                            nama_parameter = '${req.body.nama_parameter}' , 
-                            nilai_parameter = '${req.body.nilai_parameter}' , 
-                            channel = '${req.body.channel}' 
+                            nilai_parameter = '${req.body.nilai_parameter}' ,  
 	                                WHERE
                                     id_parameter = '${req.params.id_parameter}' `;
     mysqlCon.query(sql, function (error, rows, fields) {
