@@ -1,12 +1,16 @@
 const express = require('express');
 var router = express.Router();
 
-const { getDataBank, getDataImportByChannel, getDataMPByChannel, getNominalDataImport , getNominalDataMP , getRekapBank , getRekapTrImport
+const { getDataBank, getDataImportByChannel, getDataMPByChannel, getRekapMasjidByReceiver , getNominalDataMP , getRekapBank , getRekapTrImport
        , getRekapTrMP , getRekapMasjid, getDatabyrek, getDatabyMasjid, getDatabyBank, getRekapMasjidByBank, getRekapBankByDate, getRekapMasjidByDate } = require('../models/rekap')
 
 //show data summary sesuai semua data yg pertama dimunculkan
 router.get('/alldata', (req, res) => {
     getRekap(req, res)
+});
+
+router.get('/detail/:receiver', (req, res) => {
+    getDetailMasjid(req, res)
 });
 
 router.get('/exportdata/:start_date/:end_date', (req, res) => {
@@ -51,6 +55,16 @@ async function getAllDataByChannel(req, res) {
 
     if (dataMP && dataImport) {
         res.send({ data_MP: dataMP, data_Import: dataImport })
+    }
+}
+
+async function getDetailMasjid(req, res) {
+
+    const result = await getRekapMasjidByReceiver(req.params.receiver)
+   
+
+    if (result) {
+        res.send({ detail_masjid: result })
     }
 }
 

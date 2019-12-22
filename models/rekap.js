@@ -94,6 +94,29 @@ exports.getRekapMasjid = () => {
     });
 }
 
+exports.getRekapMasjidByReceiver = receiver => {
+    return new Promise(resolve => {
+        const sql = `SELECT a.* , (a.nominal_transaksi_awal - (a.nominal_potongan_kmdn + a.nominal_potongan_cashback + a.nominal_potongan_channel)) as total_akhir
+        FROM(
+            SELECT tr.receiver, tr.no_rekening_penerima, tr.nama_rekening_penerima, tr.nama_penerima, tr.bank_penerima, count(tr.					bank_penerima) as jumlah_transaksi, SUM(tr.total_pembayaran) as nominal_transaksi_awal, SUM(ti.potongan_kmdn*tr.total_pembayaran) as nominal_potongan_kmdn, SUM(ti.potongan_channel * tr.total_pembayaran) as 					nominal_potongan_channel, SUM(ti.potongan_cashback * tr.total_pembayaran) as nominal_potongan_cashback
+            FROM transaction_mp tr
+            LEFT JOIN transaction_import ti ON ti.reference_id = tr.reference_id
+            WHERE tr.receiver = '${receiver}'
+          GROUP BY tr.nama_penerima
+        ) a
+        ORDER BY total_akhir DESC`;
+        console.log(sql)
+        mysqlCon.query(sql,
+            function (error, rows, fields) {
+                if (error) {
+                    console.log(error)
+                } else {
+                    resolve(rows);
+                }
+            });
+    });
+}
+
 exports.getRekapTrImport = () => {
     return new Promise(resolve => {
         const sql = `SELECT a.*, (a.payment_amount - (a.nominal_potongan_channel + a.nominal_potongan_kmdn + a.nominal_potongan_cashback)) as nominal_akhir  FROM (
