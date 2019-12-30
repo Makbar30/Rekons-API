@@ -119,6 +119,7 @@ async function convertxlsx(path, workbook) {
 async function insertData(dataGOPAY, params_KMDN, params_user, params_channel) {
     let count = 0;
     for await (data of dataGOPAY) {
+        // console.log(transaction_date, payment_date)
         await insertImportGopay(data, params_KMDN, params_user, params_channel)
             .then(result => {
                 console.log(result)

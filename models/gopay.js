@@ -1,7 +1,10 @@
 const mysqlCon = require('./mysqlCon');
 const moment = require('moment')
+
 exports.insertImportGopay = (values, ptg_kmdn, ptg_user, ptg_channel) => {
     return new Promise(resolve => {
+        console.log(moment().format())
+        console.log(moment(`${values[7]}`).utc().format('YYYY-MM-DD HH:mm:ss'), values[7])
         var total_nominal_akhir = parseInt(values[4]) - (parseInt(values[4]) * (ptg_kmdn + ptg_user + ptg_channel));
         var sql = `INSERT INTO transaction_import ( channel , transaction_id , bill_no , reference_id , transaction_date , 
             payment_date , amount , payment_amount ,
@@ -9,8 +12,8 @@ exports.insertImportGopay = (values, ptg_kmdn, ptg_user, ptg_channel) => {
             total_akhir, customer)
         SELECT * FROM (SELECT  'GOPAY' as channel , '${values[5].replace("'", "")}' as transaction_id ,
         ${parseInt(values[1].replace("'", ""))} as bill_no , '${values[5].replace("'", "")}' as reference_id , 
-        CAST('${moment(`${values[7]}`).format('YYYY-MM-DD HH:mm:ss')}' AS datetime) as transaction_date,  
-        CAST('${moment(`${values[8]}`).format('YYYY-MM-DD HH:mm:ss')}' AS datetime) as payment_date , ${parseInt(values[4])} as amount ,
+        '${moment(`${values[7]}`).utc().format('YYYY-MM-DD HH:mm:ss')}' as transaction_date,  
+        '${moment(`${values[8]}`).utc().format('YYYY-MM-DD HH:mm:ss')}' as payment_date , ${parseInt(values[4])} as amount ,
         ${parseInt(values[4])} as payment_amount, '${values[6]}' as status , 0 as isSame, NOW() as imported_at, NOW() as updated_at,
         ${ptg_channel} as potongan_channel, ${ptg_user} as potongan_cashback, ${ptg_kmdn} as potongan_kmdn,
        ${total_nominal_akhir} as total_akhir,'${values[9]}' as customer) AS tmp
