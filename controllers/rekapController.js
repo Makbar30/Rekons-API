@@ -2,7 +2,7 @@ const express = require('express');
 var router = express.Router();
 
 const { getDataBank, getDataImportByChannel, getDataMPByChannel, getRekapMasjidByReceiver , getNominalDataMP , getRekapBank , getRekapTrImport
-       , getRekapTrMP , getRekapMasjid, getDatabyrek, getDatabyMasjid, getDatabyBank, getRekapMasjidByBank, getRekapBankByDate, getRekapMasjidByDate } = require('../models/rekap')
+       , getRekapTrMP , getRekapMasjid, getDatabyrek, getDatabyMasjid, getDatabyBank, getRekapMasjidByBank, getRekapBankByDate, getRekapMasjidByDate, getDatabyMasjidAndDate} = require('../models/rekap')
 
 //show data summary sesuai semua data yg pertama dimunculkan
 router.get('/alldata', (req, res) => {
