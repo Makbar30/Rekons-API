@@ -29,7 +29,7 @@ router.post('/upload', upload, (req, res) => {
 //upload and convert csv & xlxs
 router.get('/datarealtime', async (req, res) => {
     var dataKonekthing = await getDataKonekthing('dana');
-    res.send({status:"success", result : dataKonekthing})
+    res.send({ status: "success", result: dataKonekthing })
 });
 
 /*************************************** Function List **********************************************/
@@ -61,37 +61,38 @@ const getDataKonekthing = type => {
 async function convertCsvDANA(req, res) {
 
     //1.fetching data dari dataKonekthing
-    var dataKonekthing = await getDataKonekthing('dana');
+    // var dataKonekthing = await getDataKonekthing('dana');
 
     //get parameter for shared fee
     // var parameters = await getParameter('dana');
 
-    if (req.file.filename.includes("Danapay Debit Report")) {
+    if (req.file.filename.includes("MERCHANT_SETTLEMENT_")) {
         var workbook = new Excel.Workbook()
         console.log("type : ", req.file.mimetype)
         var dataDanapay = await convertxlsx(req.file.path, workbook)
-        var countInsertDanapay = await insertData(dataDanapay);
-        var countInsertMP = await matchingData(dataDanapay, dataKonekthing);
-        if (countInsertDanapay === 0 && countInsertMP.matchdata === 0 || countInsertMP.updatedData === 0) {
-            fs.unlink(`./tmp/csv/${req.file.filename}`, function (err) {
-                if (err) throw err;
+        res.send({ status: "success", data_convert: dataDanapay })
+        // var countInsertDanapay = await insertData(dataDanapay);
+        // var countInsertMP = await matchingData(dataDanapay, dataKonekthing);
+        // if (countInsertDanapay === 0 && countInsertMP.matchdata === 0 || countInsertMP.updatedData === 0) {
+        //     fs.unlink(`./tmp/csv/${req.file.filename}`, function (err) {
+        //         if (err) throw err;
 
-                res.status(400).send({ status: 'failed', desc: "File sama isinya dan tidak ada yang match" })
-            });
-        } else {
-            mysqlCon.query(`
-                INSERT INTO attachment ( 
-                    attachment_name , import_at , ext_name , channel
-                  ) values ( 
-                    '${req.file.filename}' , NOW() , '${req.file.mimetype}', 'dana'
-                  )`, async function (error, rows, fields) {
+        //         res.status(400).send({ status: 'failed', desc: "File sama isinya dan tidak ada yang match" })
+        //     });
+        // } else {
+        //     mysqlCon.query(`
+        //         INSERT INTO attachment ( 
+        //             attachment_name , import_at , ext_name , channel
+        //           ) values ( 
+        //             '${req.file.filename}' , NOW() , '${req.file.mimetype}', 'dana'
+        //           )`, async function (error, rows, fields) {
 
-                if (error) {
-                    res.status(400).send({ status: 'failed', desc: error })
-                }
-                res.send({ status: "success", data_masuk: countInsertDanapay, data_sama: countInsertMP.matchdata, updated_data_danapay: countInsertMP.updatedData })
-            })
-        }
+        //         if (error) {
+        //             res.status(400).send({ status: 'failed', desc: error })
+        //         }
+        //         res.send({ status: "success", data_masuk: countInsertDanapay, data_sama: countInsertMP.matchdata, updated_data_danapay: countInsertMP.updatedData })
+        //     })
+        // }
     } else {
         fs.unlink(`./tmp/csv/${req.file.filename}`, function (err) {
             if (err) throw err;
@@ -102,14 +103,33 @@ async function convertCsvDANA(req, res) {
 }
 
 async function convertxlsx(path, workbook) {
-    var workbooks = await workbook.xlsx.readFile(path);
-    var sheet = await workbooks._worksheets[1];
-    var dataDANA = [];
-    await sheet.eachRow((row, rowIndex) => {
-        const isDANA = row.values.includes("DANA", 4);
-        if (isDANA) {
-            dataDANA.push(row.values);
+    var options = {
+        map(value, index) {
+            switch (index) {
+                case 0:
+                    // column 1 is string
+                    return value.toString();
+                case 1:
+                    // column 2 is a date
+                    return value.toString();
+                case 4:
+                    // column 3 is JSON of a formula value
+                    return value.toString();
+                default:
+                    // the rest are numbers
+                    return value;
+            }
         }
+    };
+    var workbooks = await workbook.csv.readFile(path, options);
+    // var sheet = await workbooks._worksheets[1];
+    var dataDANA = [];
+    await workbooks.eachRow({ includeEmpty: false }, function (row, rowNumber) {
+        console.log("Row " + rowNumber + " = " + row.values)
+        // const isDANA = row.values.includes("DANA", 4);
+        // if (isDANA) {
+        dataDANA.push(row.values);
+        // }
     });
 
     return dataDANA

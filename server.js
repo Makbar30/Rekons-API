@@ -6,6 +6,7 @@ const bodyparser = require('body-parser');
 
 var cors = require('cors');
 
+const dashboardController = require('./controllers/DashboardController');
 const ovoController = require('./controllers/OVOController');
 const gopayController = require('./controllers/GoPayController');
 const danaController = require('./controllers/DanaController');
@@ -34,6 +35,7 @@ function main () {
     });
     
     app.use('/rekons', CRUDController);
+    app.use('/rekons/dashboard', dashboardController);
     app.use('/rekons/login', loginController);
     app.use('/rekons/ovo', ovoController);
     app.use('/rekons/gopay', gopayController);
