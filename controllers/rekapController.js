@@ -1,8 +1,8 @@
 const express = require('express');
 var router = express.Router();
 
-const { getDataBank, getDataImportByChannel, getDataMPByChannel, getRekapMasjidByReceiver , getNominalDataMP , getRekapBank , getRekapTrImport
-       , getRekapTrMP , getRekapMasjid, getDatabyrek, getDatabyMasjid, getDatabyBank, getRekapMasjidByBank, getRekapBankByDate, getRekapMasjidByDate, getDatabyMasjidAndDate} = require('../models/rekap')
+const { getDataBank, getDataImportByChannel, getDataMPByChannel, getRekapMasjidByReceiver , getRekapBank , getRekapTrImport
+       , getRekapTrMP , getRekapMasjid, getDatabyMasjid, getDatabyBank, getRekapMasjidByBank, getRekapBankByDate, getRekapMasjidByDate, getDatabyMasjidAndDate} = require('../models/rekap')
 
 //show data summary sesuai semua data yg pertama dimunculkan
 router.get('/alldata', (req, res) => {
@@ -26,19 +26,11 @@ router.get('/exportcsv/:bank/:date', (req, res) => {
     exportCSV(req, res)
 });
 
-router.get('/getDataExport/:nama/:norek/:start_date/:end_date', (req, res) => {
-    getDataByRekAndDate(req, res)
-});
-
-router.get('/getDataExport/:nama/:norek', (req, res) => {
-    getDataByRek(req, res)
-});
-
-router.get('/getDataExport/:nama', (req, res) => {
+router.get('/getDataExport/:receiver', (req, res) => {
     getDataByMasjid(req, res)
 });
 
-router.get('/getDataExport/:nama/:start_date/:end_date', (req, res) => {
+router.get('/getDataExport/:receiver/:start_date/:end_date', (req, res) => {
     getDataByMasjidAndDate(req, res)
 });
 
@@ -90,27 +82,9 @@ async function getDataForExport(req, res) {
     }
 }
 
-async function getDataByRek(req, res) {
-
-    const dataExport = await getDatabyrek(req.params.nama, req.params.norek, req.params.start_date, req.params.end_date);
-
-    if (dataExport) {
-        res.send({ data_export: dataExport })
-    }
-}
-
-async function getDataByRekAndDate(req, res) {
-
-    const dataExport = await getDatabyrek(req.params.nama, req.params.norek, req.params.start_date, req.params.end_date);
-
-    if (dataExport) {
-        res.send({ data_export: dataExport })
-    }
-}
-
 async function getDataByMasjid(req, res) {
 
-    const dataExport = await getDatabyMasjid(req.params.nama);
+    const dataExport = await getDatabyMasjid(req.params.receiver);
 
     if (dataExport) {
         res.send({ data_export: dataExport })
@@ -119,7 +93,7 @@ async function getDataByMasjid(req, res) {
 
 async function getDataByMasjidAndDate(req, res) {
 
-    const dataExport = await getDatabyMasjidAndDate(req.params.nama, req.params.start_date, req.params.end_date);
+    const dataExport = await getDatabyMasjidAndDate(req.params.receiver, req.params.start_date, req.params.end_date);
 
     if (dataExport) {
         res.send({ data_export: dataExport })

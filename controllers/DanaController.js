@@ -8,6 +8,7 @@ const async = require('async')
 var _ = require('lodash');
 var fs = require('fs');
 const { insertImportDanapay, insertdataMPDANA, updateDataDanapay } = require('../models/dana')
+const { getParamsInput } = require('../models/params')
 
 /// ini untuk upload ///
 const multer = require('multer');
@@ -60,39 +61,41 @@ const getDataKonekthing = type => {
 
 async function convertCsvDANA(req, res) {
 
-    //1.fetching data dari dataKonekthing
-    // var dataKonekthing = await getDataKonekthing('dana');
+    // 1.fetching data dari dataKonekthing
+    var dataKonekthing = await getDataKonekthing('dana');
 
-    //get parameter for shared fee
-    // var parameters = await getParameter('dana');
+    // get parameter for shared fee
+    var potonganChannel = await getParamsInput('dana');
+    var potonganKMDN = await getParamsInput("kmdn");
+    var potonganUser = await getParamsInput("user");
 
     if (req.file.filename.includes("MERCHANT_SETTLEMENT_")) {
         var workbook = new Excel.Workbook()
         console.log("type : ", req.file.mimetype)
         var dataDanapay = await convertxlsx(req.file.path, workbook)
-        res.send({ status: "success", data_convert: dataDanapay })
-        // var countInsertDanapay = await insertData(dataDanapay);
-        // var countInsertMP = await matchingData(dataDanapay, dataKonekthing);
-        // if (countInsertDanapay === 0 && countInsertMP.matchdata === 0 || countInsertMP.updatedData === 0) {
-        //     fs.unlink(`./tmp/csv/${req.file.filename}`, function (err) {
-        //         if (err) throw err;
+        var countInsertDanapay = await insertData(dataDanapay, potonganKMDN, potonganUser, potonganChannel);
+        var countInsertMP = await matchingData(dataDanapay, dataKonekthing)
+        console.log(countInsertMP, countInsertDanapay)
+        if (countInsertDanapay === 0 && countInsertMP.matchdata === 0 || countInsertMP.updatedData === 0) {
+            fs.unlink(`./tmp/csv/${req.file.filename}`, function (err) {
+                if (err) throw err;
 
-        //         res.status(400).send({ status: 'failed', desc: "File sama isinya dan tidak ada yang match" })
-        //     });
-        // } else {
-        //     mysqlCon.query(`
-        //         INSERT INTO attachment ( 
-        //             attachment_name , import_at , ext_name , channel
-        //           ) values ( 
-        //             '${req.file.filename}' , NOW() , '${req.file.mimetype}', 'dana'
-        //           )`, async function (error, rows, fields) {
+                res.status(400).send({ status: 'failed', desc: "File sama isinya dan tidak ada yang match" })
+            });
+        } else {
+            mysqlCon.query(`
+                INSERT INTO attachment ( 
+                    attachment_name , import_at , ext_name , channel
+                  ) values ( 
+                    '${req.file.filename}' , NOW() , '${req.file.mimetype}', 'dana'
+                  )`, async function (error, rows, fields) {
 
-        //         if (error) {
-        //             res.status(400).send({ status: 'failed', desc: error })
-        //         }
-        //         res.send({ status: "success", data_masuk: countInsertDanapay, data_sama: countInsertMP.matchdata, updated_data_danapay: countInsertMP.updatedData })
-        //     })
-        // }
+                if (error) {
+                    res.status(400).send({ status: 'failed', desc: error })
+                }
+                res.send({ status: "success", data_masuk: countInsertDanapay, data_sama: countInsertMP.matchdata, updated_data_danapay: countInsertMP.updatedData })
+            })
+        }
     } else {
         fs.unlink(`./tmp/csv/${req.file.filename}`, function (err) {
             if (err) throw err;
@@ -107,16 +110,15 @@ async function convertxlsx(path, workbook) {
         map(value, index) {
             switch (index) {
                 case 0:
-                    // column 1 is string
+                    // column 0 is longnumber
                     return value.toString();
                 case 1:
-                    // column 2 is a date
+                    // column 1 is longnumber
                     return value.toString();
                 case 4:
-                    // column 3 is JSON of a formula value
+                    // column 4 is longnumber
                     return value.toString();
                 default:
-                    // the rest are numbers
                     return value;
             }
         }
@@ -125,31 +127,28 @@ async function convertxlsx(path, workbook) {
     // var sheet = await workbooks._worksheets[1];
     var dataDANA = [];
     await workbooks.eachRow({ includeEmpty: false }, function (row, rowNumber) {
-        console.log("Row " + rowNumber + " = " + row.values)
-        // const isDANA = row.values.includes("DANA", 4);
-        // if (isDANA) {
-        dataDANA.push(row.values);
-        // }
+        const isDANA = row.values.includes("IDR", 9);
+        if (isDANA) {
+            console.log("Row " + rowNumber + " = " + row.values)
+            dataDANA.push(row.values);
+        }
     });
 
     return dataDANA
 }
 
-async function insertData(dataDANA) {
+async function insertData(dataDANA, params_KMDN, params_user, params_channel) {
     let count = 0;
 
-    //var disini hanya untuk nunggu si async.each
-    var insertImport = await async.each(dataDANA, function (data, resume) {
-        insertImportDanapay(data)
+    for await (dataDanapay of dataDANA) {
+        await insertImportDanapay(dataDanapay, params_KMDN, params_user, params_channel)
             .then(result => {
                 console.log(result)
                 if (result.insertId !== 0) {
                     count++;
                 }
-                resume();
             })
-    });
-
+    }
     return count;
 }
 
@@ -159,13 +158,15 @@ async function matchingData(dataDANA, dataKonekthing) {
 
     for await (dataDanapay of dataDANA) {
         for await (dataMp of dataKonekthing) {
-            if (parseInt(dataMp.bill_no) === parseInt(dataDanapay[6])) {
+            if (dataMp.acquirementId === dataDanapay[4]) {
+                console.log("import sama")
                 await insertdataMPDANA(dataMp)
                     .then(async result => {
                         if (result.insertId !== 0) {
                             matchcount++;
                         }
-                        await updateDataDanapay(dataDanapay[6])
+                        console.log("update sama")
+                        await updateDataDanapay(dataDanapay[4])
                             .then(result => {
                                 if (result.affectedRows > 0) {
                                     updatecount++;
