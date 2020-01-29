@@ -16,6 +16,22 @@ exports.getalldata = () => {
     });
 }
 
+exports.getalldatabymty = () => {
+    return new Promise(resolve => {
+        var sql = `SELECT 
+        CONCAT(MONTH(tgl_transaksi),'-',YEAR(tgl_transaksi)) AS mty,SUM(total_amount) AS total,
+        (SUM(total_amount) / COUNT(DISTINCT sender)) AS average, COUNT(DISTINCT SENDER) AS unique_user
+        FROM transaction_mp 
+        GROUP BY MONTH(tgl_transaksi)`;
+        mysqlCon.query(sql, function (error, rows, fields) {
+            if (error) {
+                console.log(error);
+            }
+            resolve(rows);
+        });
+    });
+}
+
 exports.getToplistby = type => {
     return new Promise(resolve => {
         if(type === "masjid"){

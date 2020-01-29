@@ -1,11 +1,16 @@
 const express = require('express');
 var router = express.Router();
 
-const { getalldata, getalldatabychannel, getToplistby } = require('../models/dashboard')
+const { getalldata, getalldatabychannel, getToplistby, getalldatabymty } = require('../models/dashboard')
 
-//show data summary sesuai semua data yg pertama dimunculkan
+//show data summary
 router.get('/alldata', (req, res) => {
     getAllData(req, res)
+});
+
+//show data summary by month
+router.get('/alldatabymty', (req, res) => {
+    getAllDataMty(req, res)
 });
 
 
@@ -25,6 +30,16 @@ async function getAllData(req, res) {
 
     if (result !== []) {
         res.send({ status: "success", data: result, list_top_masjid : topmasjid, list_top_user : topuser })
+    }
+}
+
+async function getAllDataMty(req, res) {
+
+    const dataall = await getalldatabymty()
+    
+
+    if (result !== []) {
+        res.send({ status: "success", data: dataall})
     }
 }
 

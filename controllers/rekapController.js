@@ -1,7 +1,7 @@
 const express = require('express');
 var router = express.Router();
 
-const { getDataBank, getDataImportByChannel, getDataMPByChannel, getRekapMasjidByReceiver , getRekapBank , getRekapTrImport
+const { getDataBank, getDataImportByChannel, getDataMPByChannel, getRekapMasjidByReceiver , getRekapBank , getRekapTrImport, getListMasjidByBank, getListTrByBank
        , getRekapTrMP , getRekapMasjid, getDatabyMasjid, getDatabyBank, getRekapMasjidByBank, getRekapBankByDate, getRekapMasjidByDate, getDatabyMasjidAndDate} = require('../models/rekap')
 
 //show data summary sesuai semua data yg pertama dimunculkan
@@ -19,6 +19,10 @@ router.get('/exportdata/:start_date/:end_date', (req, res) => {
 
 router.get('/databychannel/:channel', (req, res) => {
     getAllDataByChannel(req, res)
+});
+
+router.get('/getDataExportByBank/:bank', (req, res) => {
+    getListDataByBank(req, res)
 });
 
 //exportcsv
@@ -85,9 +89,10 @@ async function getDataForExport(req, res) {
 async function getDataByMasjid(req, res) {
 
     const dataExport = await getDatabyMasjid(req.params.receiver);
+    const dataMasjid = await getRekapMasjidByReceiver(req.params.receiver);
 
     if (dataExport) {
-        res.send({ data_export: dataExport })
+        res.send({ data_export: dataExport, data_masjid: dataMasjid[0] })
     }
 }
 
@@ -103,8 +108,8 @@ async function getDataByMasjidAndDate(req, res) {
 
 async function getListDataByBank(req, res) {
 
-    const dataExport = await getDatabyBank(req.params.bank, req.params.start_date, req.params.end_date);
-    const dataMasjid = await getRekapMasjidByBank(req.params.bank, req.params.start_date, req.params.end_date);
+    const dataExport = await getListTrByBank(req.params.bank);
+    const dataMasjid = await getListMasjidByBank(req.params.bank);
 
     if (dataExport) {
         res.send({ data_export: dataExport, data_masjid: dataMasjid })

@@ -149,9 +149,72 @@ exports.getRekapMasjidByReceiver = receiver => {
             FROM transaction_mp tr
             LEFT JOIN transaction_import ti ON ti.reference_id = tr.reference_id
             WHERE tr.receiver = '${receiver}'
-          GROUP BY tr.nama_penerima
+          GROUP BY tr.receiver
         ) a
         ORDER BY total_akhir DESC`;
+        console.log(sql)
+        mysqlCon.query(sql,
+            function (error, rows, fields) {
+                if (error) {
+                    console.log(error)
+                } else {
+                    resolve(rows);
+                }
+            });
+    });
+}
+
+exports.getListMasjidByBank = bank => {
+    return new Promise(resolve => {
+        const sql = `SELECT 
+        a.* , 
+        (a.nominal_transaksi_awal - (a.nominal_potongan_kmdn + a.nominal_potongan_cashback + a.nominal_potongan_channel)) as total_akhir
+        FROM(
+            SELECT 
+                tr.receiver, 
+                tr.no_rekening_penerima, 
+                tr.nama_rekening_penerima, 
+                tr.nama_penerima, 
+                tr.bank_penerima, 
+                count(tr.bank_penerima) as jumlah_transaksi, 
+                SUM(tr.total_pembayaran) as nominal_transaksi_awal, 
+                SUM(ti.potongan_kmdn*tr.total_pembayaran) as nominal_potongan_kmdn, 
+                SUM(ti.potongan_channel * tr.total_pembayaran) as nominal_potongan_channel, 
+                SUM(ti.potongan_cashback * tr.total_pembayaran) as nominal_potongan_cashback
+            FROM transaction_mp tr
+            LEFT JOIN transaction_import ti ON ti.reference_id = tr.reference_id
+            WHERE tr.bank_penerima = '${bank}'
+            GROUP BY tr.receiver
+        ) a
+        ORDER BY a.receiver ASC`;
+        console.log(sql)
+        mysqlCon.query(sql,
+            function (error, rows, fields) {
+                if (error) {
+                    console.log(error)
+                } else {
+                    resolve(rows);
+                }
+            });
+    });
+}
+
+exports.getListTrByBank = bank => {
+    return new Promise(resolve => {
+        const sql = `SELECT 
+        a.*, 
+        (a.total_pembayaran - (a.nominal_potongan_kmdn + a.nominal_potongan_cashback + a.nominal_potongan_channel)) as total_akhir
+        FROM(
+                SELECT 
+                    tr.*, 
+                    (ti.potongan_kmdn * tr.total_pembayaran) as nominal_potongan_kmdn, 
+                    (ti.potongan_channel * tr.total_pembayaran) as nominal_potongan_channel, 
+                    (ti.potongan_cashback * tr.total_pembayaran) as nominal_potongan_cashback
+                FROM transaction_mp tr
+                LEFT JOIN transaction_import ti ON ti.reference_id = tr.reference_id
+                WHERE tr.bank_penerima = "${bank}" 
+            )a
+        ORDER BY a.receiver ASC`;
         console.log(sql)
         mysqlCon.query(sql,
             function (error, rows, fields) {
@@ -437,6 +500,41 @@ exports.getDatabyBank = (bank, start_date, end_date) => {
                 if (error) {
                     console.log(error)
                     throw error
+                } else {
+                    resolve(rows);
+                }
+            });
+    });
+}
+
+exports.getRekapMasjidByBank = (bank, start_date, end_date) => {
+    return new Promise(resolve => {
+        const sql = `SELECT 
+        a.* , 
+        (a.nominal_transaksi_awal - (a.nominal_potongan_kmdn + a.nominal_potongan_cashback + a.nominal_potongan_channel)) as total_akhir
+        FROM(
+            SELECT 
+                tr.receiver, 
+                tr.no_rekening_penerima, 
+                tr.nama_rekening_penerima, 
+                tr.nama_penerima, 
+                tr.bank_penerima, 
+                count(tr.bank_penerima) as jumlah_transaksi, 
+                SUM(tr.total_pembayaran) as nominal_transaksi_awal, 
+                SUM(ti.potongan_kmdn * tr.total_pembayaran) as nominal_potongan_kmdn, 
+                SUM(ti.potongan_channel * tr.total_pembayaran) as nominal_potongan_channel, 
+                SUM(ti.potongan_cashback * tr.total_pembayaran) as nominal_potongan_cashback
+            FROM transaction_mp tr
+            LEFT JOIN transaction_import ti ON ti.reference_id = tr.reference_id
+            WHERE (tr.bank_penerima = "${bank}" AND (tr.isTransfer = "F" AND (tr.tgl_transaksi BETWEEN "${start_date}" AND 	"${end_date}")))
+          GROUP BY tr.nama_penerima
+        ) a
+        ORDER BY a.nama_penerima ASC`;
+        console.log(sql)
+        mysqlCon.query(sql,
+            function (error, rows, fields) {
+                if (error) {
+                    console.log(error)
                 } else {
                     resolve(rows);
                 }
