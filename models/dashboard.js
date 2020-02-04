@@ -55,7 +55,7 @@ exports.getToplistby = type => {
               GROUP BY tr.receiver
             ) a
             ORDER BY total_akhir DESC
-            LIMIT 5;`
+            LIMIT 10;`
         }else if(type === "user"){
             var sql = `SELECT 
             a.* , 
@@ -73,7 +73,7 @@ exports.getToplistby = type => {
               GROUP BY tr.sender
             ) a
             ORDER BY total_akhir DESC
-            LIMIT 5;`
+            LIMIT 10;`
         }
         
         mysqlCon.query(sql, function (error, rows, fields) {
