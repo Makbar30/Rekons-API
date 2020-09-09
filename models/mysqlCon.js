@@ -3,10 +3,10 @@ var mysql = require('mysql');
 //- Connection configuration
 var con  = mysql.createPool({
   connectionLimit : 10,
-  host: "35.198.205.215",
+  host: "localhost",
   port: "3306",
   user: "root",
-  password: "muslimpocket2019!@#",
+  password: "",
   database: "rekonsiliasi_dev",
   multipleStatements: true
 });
